@@ -8,6 +8,7 @@ import helmet from "helmet";
 import xss from "xss-clean";
 import hpp from "hpp";
 import rateLimit from "express-rate-limit";
+import globalRoutes from "./routes/index.js";
 
 import config from "./config/config.js";
 import logger from "./utils/logger.js";
@@ -73,6 +74,9 @@ app.get("/health", (req, res) => {
     version: config.api.version,
   });
 });
+
+// Mount global API routes
+app.use("/api", globalRoutes);
 
 // API 문서
 app.get("/api-docs", (req, res) => {
