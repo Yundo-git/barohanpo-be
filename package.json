@@ -5,7 +5,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon --delay 2000ms --signal SIGTERM --exitcrash src/server.js",
+    "dev": "DEBUG=app:* nodemon --delay 2000ms --signal SIGTERM --exitcrash src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "nodemonConfig": {
@@ -37,7 +37,8 @@
     "mysql2": "^3.14.1",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
-    "xss-clean": "^0.1.4"
+    "xss-clean": "^0.1.4",
+    "debug": "^4.3.4"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

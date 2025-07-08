@@ -1,5 +1,8 @@
 import * as pharmacyService from "./pharmacy.service.js";
-import { idParamSchema } from "./pharmacy.validation.js";
+import debug from "debug";
+
+// Namespace for this controller's logs
+const log = debug("app:pharmacy");
 
 /**
  * GET /api/pharmacies
@@ -19,37 +22,20 @@ export const getAllpharmacy = async (req, res, next) => {
 };
 
 /**
- * GET /api/pharmacies/:id
- * 단일 약국 조회
+ * GET /api/pharmacies/nearby
+ * 근처 약국 조회
  */
-export const getpharmacyById = async (req, res, next) => {
+
+export const getNearbypharmacy = async (req, res, next) => {
+  const { lat, lng } = req.query;
+  log("req.query", req.query);
+  log("latitude=%s longitude=%s", lat, lng);
   try {
-    // 파라미터 검증
-const { value, error } = idParamSchema.validate(req.params);
-if (error) {
-  return res.status(400).json({ success: false, message: error.message });
-}
-const { id } = value;
-
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "ID is required",
-      });
-    }
-
-    const pharmacy = await pharmacyService.fetchById(id);
-
-    if (!pharmacy) {
-      return res.status(404).json({
-        success: false,
-        message: "Pharmacy not found",
-      });
-    }
-
+    const pharmacies = await pharmacyService.fetchNearby(lat, lng, 4);
     res.status(200).json({
       success: true,
-      data: pharmacy,
+      count: pharmacies.length,
+      data: pharmacies,
     });
   } catch (error) {
     next(error);

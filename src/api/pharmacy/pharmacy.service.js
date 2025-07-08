@@ -1,4 +1,4 @@
-import { pharmacyModel } from "../../models/pharmacyModel.js";
+import { pharmacyModel } from "./pharmacyModel.js";
 
 /**
  * 서비스 계층 (Business Logic Layer)
@@ -19,11 +19,9 @@ export const fetchAll = async () => {
 };
 
 /**
- * ID로 단일 약국 조회
- * @param {number|string} id - 약국 PK
+ * 근처 약국 조회
  */
-export const fetchById = async (id) => {
-  // 여기서 추가 규칙(예: id 형식 검증, 로깅) 등을 수행 가능
-  const row = await pharmacyModel.findById(id);
-  return row;
+export const fetchNearby = async (latitude, longitude, radiusKm = 2) => {
+  const rows = await pharmacyModel.findNearby(latitude, longitude, radiusKm);
+  return rows;
 };
