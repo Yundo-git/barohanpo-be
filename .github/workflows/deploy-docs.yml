@@ -7,15 +7,19 @@ on:
       - 'src/**/*.js'
       - 'generate-swagger.js'
       - 'package.json'
+      - '.github/workflows/deploy-docs.yml'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       
-      - name: Use Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '16.x'
@@ -25,7 +29,9 @@ jobs:
         run: npm ci
       
       - name: Generate Swagger docs
-        run: npm run generate-swagger
+        run: |
+          npm run generate-swagger
+          ls -la docs/
       
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
@@ -35,3 +41,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           clean: true
           single-commit: true
+          force: true
