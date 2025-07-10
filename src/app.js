@@ -9,20 +9,43 @@ import xss from "xss-clean";
 import hpp from "hpp";
 import rateLimit from "express-rate-limit";
 import globalRoutes from "./routes/index.js";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./config/swagger.js";
 
 import config from "./config/config.js";
 import logger from "./utils/logger.js";
 import errorHandler, { notFoundHandler } from "./middlewares/errorHandler.js";
 
+const app = express();
+
+// 1) CORS 설정 (가장 먼저 위치)
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
+app.options("*", cors());
+
+// 2) Swagger UI (CORS 다음에 위치)
+app.use(
+  "/api-docs",
+  (req, res, next) => {
+    console.log("✅ Swagger 요청 감지됨:", req.originalUrl);
+    next();
+  },
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    explorer: true,
+    customSiteTitle: "BaroHanpo API 문서",
+  })
+);
+
 // ES 모듈에서 __dirname 대체
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-
-// 1) GLOBAL MIDDLEWARES
-// 보안 HTTP 헤더 설정
-app.use(helmet());
+// 3) 기타 미들웨어
 
 // 개발 환경 로깅
 if (config.nodeEnv === "development") {
@@ -32,35 +55,34 @@ if (config.nodeEnv === "development") {
   });
 }
 
-// CORS 설정
-app.use(
-  cors({
-    origin: config.cors.origin,
-    credentials: true,
-  })
-);
+// 정적 파일 서빙
+app.use(express.static(path.join(__dirname, "public")));
 
 // 요청 본문 파싱
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
-// 데이터 보안
-app.use(xss()); // XSS 공격 방지
-app.use(hpp()); // HTTP 파라미터 오염 방지
+// 보안 관련 미들웨어
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // Swagger UI 호환성을 위해 비활성화
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
-// 압축
+app.use(xss());
+app.use(hpp());
 app.use(compression());
-
-// 정적 파일 서빙
-app.use(express.static(path.join(__dirname, "public")));
 
 // API 요청 제한
 const limiter = rateLimit({
   max: 100, // 100개의 요청
-  windowMs: 60 * 60 * 1000, // 1시간
-  message: "Too many requests from this IP, please try again in an hour!",
+  windowMs: 15 * 60 * 1000, // 15분 동안
+  message: "너무 많은 요청이 발생했습니다. 15분 후에 다시 시도해주세요.",
 });
+
+// 라우트에 rate limit 적용
 app.use("/api", limiter);
 
 // 2) ROUTES
@@ -75,13 +97,8 @@ app.get("/health", (req, res) => {
   });
 });
 
-// Mount global API routes
+// Mount global API routes (가장 마지막에 위치)
 app.use("/api", globalRoutes);
-
-// API 문서
-app.get("/api-docs", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "api-docs.html"));
-});
 
 // 3) ERROR HANDLING
 // 존재하지 않는 라우트 처리
@@ -89,5 +106,8 @@ app.all("*", notFoundHandler);
 
 // 전역 에러 핸들러
 app.use(errorHandler);
+
+//스웨거 라우터 추가
+// app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 export default app;

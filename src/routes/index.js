@@ -3,6 +3,16 @@ import pharmacyRoutes from "../api/pharmacy/pharmacy.routes.js";
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: 서버 상태 확인
+ *     responses:
+ *       200:
+ *         description: 서버가 정상 작동 중입니다.
+ */
+
 // 컨트롤러 가져오기
 // import {
 //   getAllExamples,
