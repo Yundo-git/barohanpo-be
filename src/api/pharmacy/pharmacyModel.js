@@ -21,7 +21,7 @@ export const pharmacyModel = {
     try {
       // Haversine formula in MySQL to calculate distance (km)
       const query = `
-        SELECT p_id, name, latitude, longitude,
+        SELECT p_id, name, address,latitude, longitude,
           (6371 * acos(
             cos(radians(?)) * cos(radians(latitude)) *
             cos(radians(longitude) - radians(?)) +
