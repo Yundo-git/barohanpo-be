@@ -1,5 +1,5 @@
 import express from "express";
-import { getAllpharmacy, getNearbypharmacy } from "./pharmacy.controller.js";
+import { getAllpharmacy, getNearbypharmacy, getpharmacyById } from "./pharmacy.controller.js";
 const router = express.Router();
 /**
  * @swagger
@@ -78,5 +78,6 @@ const router = express.Router();
 
 router.get("/", getAllpharmacy);
 router.get("/nearby", getNearbypharmacy);
+router.get('/:p_id', getpharmacyById);
 
 export default router;

@@ -25,3 +25,12 @@ export const fetchNearby = async (latitude, longitude, radiusKm = 2) => {
   const rows = await pharmacyModel.findNearby(latitude, longitude, radiusKm);
   return rows;
 };
+
+/**
+ * 약국 ID로 조회
+ */
+export const fetchById = async (p_id) => {
+  console.log("p_id in service", p_id);
+  const rows = await pharmacyModel.findById(p_id);
+  return rows;
+};

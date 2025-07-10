@@ -39,6 +39,19 @@ export const pharmacyModel = {
       throw error;
     }
   },
+
+  findById: async (p_id) => {
+    console.log("p_id in model", p_id);
+    try {
+      const [rows] = await pool.query("SELECT * FROM pharmacy WHERE p_id = ?", [p_id]);
+      return rows[0];
+    } catch (error) {
+      console.error("Error in pharmacyModel.findById:", error);
+      throw error;
+    }
+  },
 };
+
+
 
 export default pharmacyModel;

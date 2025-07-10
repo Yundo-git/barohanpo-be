@@ -23,5 +23,6 @@ const router = express.Router();
 
 // 라우터정의
 router.use("/pharmacy", pharmacyRoutes); //약국 관련 라우터
+// router.use("/pha_user", pha_userRoutes); //약사 관련 라우터
 
 export default router;

@@ -158,3 +158,17 @@ export const getNearbypharmacy = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getpharmacyById = async (req, res, next) => {
+  const { p_id } = req.params;
+  log("p_id", p_id);
+  try {
+    const pharmacy = await pharmacyService.fetchById(p_id);
+    res.status(200).json({
+      success: true,
+      data: pharmacy,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
