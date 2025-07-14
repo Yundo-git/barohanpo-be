@@ -18,4 +18,5 @@ router.use("/pharmacy", pharmacyRoutes); //약국 관련 라우터
 router.use("/pha_user", pha_userRoutes); //약사 관련 라우터
 router.use("/reservation", booksRoutes); //예약 관련 라우터
 
+
 export default router;
