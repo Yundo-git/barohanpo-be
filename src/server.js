@@ -1,5 +1,6 @@
 import app from "./app.js";
 import dotenv from "dotenv";
+import { initSlotGenerator } from "./utils/initSlotGenerator.js";
 
 // 환경 변수 설정
 dotenv.config();
@@ -13,6 +14,9 @@ const server = app.listen(PORT, () => {
   console.log(`🕒 Started at: ${new Date().toISOString()}`);
   console.log("Swagger 문서: http://localhost:5000/api-docs");
 });
+
+//예약슬롯생성
+initSlotGenerator();
 
 // Graceful shutdown
 process.on("SIGTERM", () => {
