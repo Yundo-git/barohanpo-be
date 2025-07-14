@@ -19,12 +19,14 @@ import errorHandler, { notFoundHandler } from "./middlewares/errorHandler.js";
 const app = express();
 
 // 1) CORS 설정 (가장 먼저 위치)
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.options("*", cors());
 
 // 2) Swagger UI (CORS 다음에 위치)
@@ -78,7 +80,7 @@ app.use(compression());
 // API 요청 제한
 const limiter = rateLimit({
   max: 100, // 100개의 요청
-  windowMs: 15 * 60 * 1000, // 15분 동안
+  windowMs: 60 * 1000, // 15분 동안
   message: "너무 많은 요청이 발생했습니다. 15분 후에 다시 시도해주세요.",
 });
 
