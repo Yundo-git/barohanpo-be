@@ -19,14 +19,27 @@ import errorHandler, { notFoundHandler } from "./middlewares/errorHandler.js";
 const app = express();
 
 // 1) CORS 설정 (가장 먼저 위치)
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://barohanpo-fe.vercel.app",
+  "https://barohanpo.xyz"
+];
+
 app.use(
   cors({
-    origin: true,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
 app.options("*", cors());
 
 // 2) Swagger UI (CORS 다음에 위치)
