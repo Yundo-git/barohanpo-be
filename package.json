@@ -27,6 +27,7 @@
   "license": "ISC",
   "description": "Backend server for Barohanpo application",
   "dependencies": {
+    "bcryptjs": "^3.0.2",
     "compression": "^1.8.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -38,6 +39,7 @@
     "helmet": "^8.1.0",
     "hpp": "^0.2.3",
     "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-dist": "^5.26.2",

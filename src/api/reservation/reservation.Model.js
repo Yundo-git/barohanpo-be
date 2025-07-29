@@ -39,9 +39,9 @@ export const booksModel = {
         `,
         [p_id]
       );
-  
+
       const grouped = {};
-  
+
       for (const row of rows) {
         if (!grouped[row.date]) {
           grouped[row.date] = {
@@ -52,7 +52,7 @@ export const booksModel = {
         }
         grouped[row.date].times.push(row.time); // 'HH:mm' 문자열
       }
-  
+
       return Object.values(grouped);
     } catch (error) {
       console.error("Error in booksModel.findAvailableDates:", error);
@@ -60,21 +60,20 @@ export const booksModel = {
     }
   },
 
-//예약하기
-insertReservation: async (conn, user_id, p_id, date, time, memo) => {
-  try {
-    const [result] = await conn.query(
-      `
+  //예약하기
+  insertReservation: async (conn, user_id, p_id, date, time, memo) => {
+    try {
+      const [result] = await conn.query(
+        `
       INSERT INTO books (user_id, p_id, book_date, book_time, memo)
       VALUES (?, ?, ?, ?, ?)
       `,
-      [user_id, p_id, date, time, memo || null]
-    );
-    return result.insertId;
-  } catch (error) {
-    console.error("Error in booksModel.insertReservation:", error);
-    throw error;
-  }
-},
+        [user_id, p_id, date, time, memo || null]
+      );
+      return result.insertId;
+    } catch (error) {
+      console.error("Error in booksModel.insertReservation:", error);
+      throw error;
+    }
+  },
 };
-
