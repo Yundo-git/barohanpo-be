@@ -150,7 +150,7 @@ export const login = async (req, res) => {
     });
   }
 };
-
+//토큰 관련 설정 추후 변경 예정
 /**
  * @swagger
  * /auth/refresh-token:
