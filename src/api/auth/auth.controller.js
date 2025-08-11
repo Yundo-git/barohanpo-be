@@ -1,4 +1,14 @@
-import * as authService from "./auth.servise.js";
+const authService = require("./auth.servise");
+const { sendError, ERROR_TYPES } = require("../../utils/errorHandler");
+const jwt = require("jsonwebtoken");
+
+/**
+ * @typedef {import('./auth.types').User} User
+ * @typedef {import('./auth.types').TokenPayload} TokenPayload
+ * @typedef {import('./auth.types').AuthTokens} AuthTokens
+ * @typedef {import('./auth.types').LoginResponse} LoginResponse
+ * @typedef {import('./auth.types').RefreshTokenResponse} RefreshTokenResponse
+ */
 /**
  * @swagger
  * /auth/signup:
@@ -23,11 +33,74 @@ import * as authService from "./auth.servise.js";
  *       500:
  *         description: 서버 내부 오류
  */
-export const signup = async (req, res) => {
+/**
+ * @swagger
+ * /auth/signup:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - name
+ *               - phone
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 example: password123
+ *               name:
+ *                 type: string
+ *                 example: John Doe
+ *               phone:
+ *                 type: string
+ *                 example: 01012345678
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     token:
+ *                       type: string
+ *                       description: Access token
+ *       400:
+ *         description: Validation error or missing required fields
+ *       409:
+ *         description: Email already in use
+ *       500:
+ *         description: Internal server error
+ */
+const signup = async (req, res) => {
   try {
     const { email, password, name, phone } = req.body;
 
-    console.log("auth controller >> ", req.body);
+    // Input validation
+    if (!email || !password || !name || !phone) {
+      return sendError(res, "All fields are required", "VALIDATION_ERROR");
+    }
+
     const { user, token, refreshToken } = await authService.signup(
       email,
       password,
@@ -35,16 +108,17 @@ export const signup = async (req, res) => {
       phone
     );
 
-    // HTTP-only 쿠키로 리프레시 토큰 설정
+    // Set HTTP-only cookie for refresh token
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // HTTPS에서만 전송
+      secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: "/api/auth/refresh-token",
     });
 
-    // 액세스 토큰은 클라이언트에서 관리하도록 응답 본문에 포함
-    res.json({
+    // Return user data and access token
+    return res.status(201).json({
       success: true,
       data: {
         user,
@@ -53,7 +127,18 @@ export const signup = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in authController.signup:", error);
-    res.status(500).json({ success: false, error: error.message });
+
+    if (error.message.includes("already in use")) {
+      return sendError(res, "Email already in use", "VALIDATION_ERROR", {
+        field: "email",
+      });
+    }
+
+    if (error.message.includes("Validation failed")) {
+      return sendError(res, error.message, "VALIDATION_ERROR");
+    }
+
+    return sendError(res, "Failed to create user", "INTERNAL_ERROR");
   }
 };
 
@@ -61,7 +146,10 @@ export const signup = async (req, res) => {
  * @swagger
  * /auth/login:
  *   post:
- *     summary: 사용자 로그인
+ *     summary: User login
+ *     description: |
+ *       Authenticates a user and returns an access token.
+ *       A refresh token is set as an HTTP-only cookie.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -75,13 +163,24 @@ export const signup = async (req, res) => {
  *             properties:
  *               email:
  *                 type: string
- *                 description: 사용자 이메일
+ *                 format: email
+ *                 description: User's email address
+ *                 example: user@example.com
  *               password:
  *                 type: string
- *                 description: 비밀번호
+ *                 format: password
+ *                 description: User's password
+ *                 example: password123
  *     responses:
  *       200:
- *         description: 로그인 성공
+ *         description: Successfully logged in
+ *         headers:
+ *           Set-Cookie:
+ *             schema:
+ *               type: string
+ *               description: |
+ *                 HTTP-only cookie containing the refresh token.
+ *                 Secure and SameSite=Strict in production.
  *         content:
  *           application/json:
  *             schema:
@@ -89,22 +188,36 @@ export const signup = async (req, res) => {
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   example: true
  *                 data:
- *                   type: object
- *                   properties:
- *                     user:
- *                       $ref: '#/components/schemas/User'
- *                     token:
- *                       type: string
- *                       description: JWT 인증 토큰
+ *                   $ref: '#/components/schemas/LoginResponse'
  *       400:
- *         description: 잘못된 요청 파라미터
+ *         description: Invalid request parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       401:
- *         description: 인증 실패 (이메일 또는 비밀번호 불일치)
+ *         description: Authentication failed (invalid credentials)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many login attempts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
- *         description: 서버 내부 오류
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *     security: []
  */
-export const login = async (req, res) => {
+const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -117,7 +230,7 @@ export const login = async (req, res) => {
 
     const result = await authService.login(email, password);
 
-    // 토큰을 HTTP Only 쿠키로 설정 (선택사항)
+    // 토큰을 HTTP Only 쿠키로 설정
     res.cookie("token", result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // HTTPS를 사용하는 경우 true로 설정
@@ -150,16 +263,30 @@ export const login = async (req, res) => {
     });
   }
 };
-//토큰 관련 설정 추후 변경 예정
 /**
  * @swagger
  * /auth/refresh-token:
  *   post:
- *     summary: 액세스 토큰 갱신
+ *     summary: Refresh access token
+ *     description: |
+ *       Refreshes the access token using a valid refresh token.
+ *       Implements refresh token rotation for better security.
+ *       The refresh token must be sent as an HTTP-only cookie.
  *     tags: [Auth]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json: {}
  *     responses:
  *       200:
- *         description: 토큰이 성공적으로 갱신되었습니다.
+ *         description: New tokens generated successfully
+ *         headers:
+ *           Set-Cookie:
+ *             schema:
+ *               type: string
+ *               description: |
+ *                 HTTP-only cookie containing the new refresh token.
+ *                 The old refresh token is invalidated.
  *         content:
  *           application/json:
  *             schema:
@@ -167,19 +294,30 @@ export const login = async (req, res) => {
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   example: true
  *                 data:
- *                   type: object
- *                   properties:
- *                     accessToken:
- *                       type: string
- *                     user:
- *                       $ref: '#/components/schemas/User'
+ *                   $ref: '#/components/schemas/RefreshTokenResponse'
+ *       400:
+ *         description: Invalid request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       401:
- *         description: 유효하지 않은 리프레시 토큰
+ *         description: Invalid or expired refresh token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
- *         description: 서버 내부 오류
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *     security: []
  */
-export const refreshToken = async (req, res) => {
+const refreshToken = async (req, res) => {
   try {
     const refreshToken =
       req.cookies?.refreshToken || req.headers["x-refresh-token"];
@@ -209,7 +347,7 @@ export const refreshToken = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
     });
 
-    // 응답 반환 (액세스 토큰만 클라이언트에 반환)
+    // 성공시 응답 코드(200) 및 내용 반환 (액세스 토큰만 클라이언트에 반환)
     return res.status(200).json({
       success: true,
       data: {
@@ -226,35 +364,6 @@ export const refreshToken = async (req, res) => {
   }
 };
 
-// @swagger
-// components:
-//   schemas:
-//     UserSignup:
-//       type: object
-//       required:
-//         - email
-//         - password
-//         - name
-//         - phone
-//       properties:
-//         email:
-//           type: string
-//           format: email
-//           example: user@example.com
-//         password:
-//           type: string
-//           format: password
-//           minLength: 8
-//           example: password123
-//         name:
-//           type: string
-//           example: 홍길동
-//         phone:
-//           type: string
-//           example: 01012345678
-//     ApiResponse:
-//       type: object
-//       properties:
 //         success:
 //           type: boolean
 //           example: true
@@ -263,20 +372,183 @@ export const refreshToken = async (req, res) => {
 
 // export { signup, login, refreshToken };
 
-export const logout = async (req, res) => {
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: User logout
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully logged out
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Successfully logged out"
+ *       401:
+ *         description: Unauthorized (invalid or missing token)
+ *       500:
+ *         description: Internal server error
+ */
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current user's profile
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved user profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized (invalid or missing token)
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
+const getCurrentUser = async (req, res) => {
   try {
-    // 리프레시 토큰 쿠키 삭제
-    res.clearCookie("refreshToken");
+    // User ID is attached to req.user by the isAuthenticated middleware
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    // Get current user's profile
+    const user = await authService.getCurrentUser(userId);
 
     return res.status(200).json({
       success: true,
-      message: "로그아웃이 완료되었습니다.",
+      data: user,
     });
   } catch (error) {
-    console.error("로그아웃 실패:", error);
+    console.error("Error in authController.getCurrentUser:", error);
+
+    if (error.message === "User not found") {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
     return res.status(500).json({
       success: false,
-      message: "로그아웃 처리 중 오류가 발생했습니다.",
+      message: "Failed to fetch user profile",
     });
   }
+};
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: User logout
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully logged out
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Successfully logged out"
+ *       401:
+ *         description: Unauthorized (invalid or missing token)
+ *       500:
+ *         description: Internal server error
+ */
+const logout = async (req, res) => {
+  try {
+    // Get the refresh token from cookies
+    const refreshToken = req.cookies?.refreshToken;
+
+    // Clear the refresh token cookie
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/api/auth/refresh-token",
+    });
+
+    // If we have a user in the request (from isAuthenticated middleware)
+    if (req.user?.id) {
+      // If we have a refresh token, try to decode it to get the JTI
+      if (refreshToken) {
+        try {
+          // Verify the token to get the JTI
+          const decoded = jwt.verify(
+            refreshToken,
+            process.env.JWT_REFRESH_SECRET,
+            { ignoreExpiration: true } // We still want to decode even if expired
+          );
+
+          // If we have a JTI, invalidate just this token
+          if (decoded?.jti) {
+            await authService.invalidateRefreshToken(decoded.jti);
+          } else {
+            // If we can't get the JTI, invalidate all user's tokens
+            await authService.logout(req.user.id);
+          }
+        } catch (error) {
+          // If there's an error decoding, just invalidate all tokens
+          await authService.logout(req.user.id);
+        }
+      } else {
+        // No refresh token, just invalidate all user's tokens
+        await authService.logout(req.user.id);
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Successfully logged out",
+    });
+  } catch (error) {
+    console.error("Error in authController.logout:", error);
+    return res.status(500).json({
+      success: false,
+      message: "An error occurred during logout",
+    });
+  }
+};
+
+module.exports = {
+  signup,
+  login,
+  refreshToken,
+  logout,
+  getCurrentUser,
 };

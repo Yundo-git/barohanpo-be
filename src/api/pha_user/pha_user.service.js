@@ -1,6 +1,6 @@
-import { pha_userModel } from "./pha_user.Model.js";
+const { pha_userModel } = require("./pha_user.Model");
 
-export const fetchAll = async () => {
+const fetchAll = async () => {
   try {
     const rows = await pha_userModel.findAll();
     return rows;
@@ -10,7 +10,7 @@ export const fetchAll = async () => {
   }
 };
 
-export const fetchById = async (p_id) => {
+const fetchById = async (p_id) => {
   try {
     const row = await pha_userModel.findById(p_id);
     return row;
@@ -20,7 +20,8 @@ export const fetchById = async (p_id) => {
   }
 };
 
-export default {
+module.exports = {
   fetchAll,
   fetchById,
+  pha_userModel
 };

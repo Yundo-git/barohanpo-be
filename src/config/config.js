@@ -1,5 +1,5 @@
 // 환경 변수 로드
-import dotenv from 'dotenv';
+const dotenv = require('dotenv');
 dotenv.config();
 
 // 데이터베이스 연결 설정
@@ -28,8 +28,9 @@ const dbConfig = {
 
 // 서버 설정
 const serverConfig = {
-  port: parseInt(process.env.PORT, 10) || 5001,
+  port: process.env.PORT || 3000,
   nodeEnv: process.env.NODE_ENV || 'development',
+  jwtSecret: process.env.JWT_SECRET || 'your_jwt_secret_key',
 };
 
 // JWT 설정
@@ -67,7 +68,7 @@ const loggerConfig = {
   maxFiles: process.env.LOG_MAX_FILES || '14d',
 };
 
-export default {
+module.exports = {
   ...serverConfig,
   db: dbConfig,
   jwt: jwtConfig,

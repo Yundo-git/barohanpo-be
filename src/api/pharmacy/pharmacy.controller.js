@@ -1,5 +1,5 @@
-import * as pharmacyService from "./pharmacy.service.js";
-import debug from "debug";
+const pharmacyService = require("./pharmacy.service");
+const debug = require("debug");
 
 // Namespace for this controller's logs
 const log = debug("app:pharmacy");
@@ -81,7 +81,7 @@ const log = debug("app:pharmacy");
  *       500:
  *         description: 서버 오류
  */
-export const getAllpharmacy = async (req, res, next) => {
+const getAllpharmacy = async (req, res, next) => {
   try {
     const pharmacies = await pharmacyService.fetchAll();
     res.status(200).json({
@@ -143,7 +143,7 @@ export const getAllpharmacy = async (req, res, next) => {
  *         description: 서버 오류
  */
 
-export const getNearbypharmacy = async (req, res, next) => {
+const getNearbypharmacy = async (req, res, next) => {
   const { lat, lng } = req.query;
   log("req.query", req.query);
   log("latitude=%s longitude=%s", lat, lng);
@@ -159,7 +159,7 @@ export const getNearbypharmacy = async (req, res, next) => {
   }
 };
 
-export const getpharmacyById = async (req, res, next) => {
+const getpharmacyById = async (req, res, next) => {
   const { p_id } = req.params;
   log("p_id", p_id);
   try {
@@ -171,4 +171,10 @@ export const getpharmacyById = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+module.exports = {
+  getAllpharmacy,
+  getNearbypharmacy,
+  getpharmacyById
 };

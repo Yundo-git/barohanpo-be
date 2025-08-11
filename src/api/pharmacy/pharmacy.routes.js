@@ -1,5 +1,5 @@
-import express from "express";
-import { getAllpharmacy, getNearbypharmacy, getpharmacyById } from "./pharmacy.controller.js";
+const express = require("express");
+const { getAllpharmacy, getNearbypharmacy, getpharmacyById } = require("./pharmacy.controller");
 const router = express.Router();
 /**
  * @swagger
@@ -80,4 +80,4 @@ router.get("/", getAllpharmacy);
 router.get("/nearby", getNearbypharmacy);
 router.get('/:p_id', getpharmacyById);
 
-export default router;
+module.exports = router;

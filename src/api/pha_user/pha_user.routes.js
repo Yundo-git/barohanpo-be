@@ -1,5 +1,5 @@
-import express from "express";
-import { getAllpha_user, getpha_userById } from "./pha_user.controller.js";
+const express = require("express");
+const { getAllpha_user, getpha_userById } = require("./pha_user.controller");
 
 const router = express.Router();
 
@@ -65,4 +65,4 @@ const router = express.Router();
 router.get("/", getAllpha_user);
 router.get("/:p_id", getpha_userById);
 
-export default router;
+module.exports = router;

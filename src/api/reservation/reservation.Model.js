@@ -1,7 +1,7 @@
 // models/booksModel.js
-import pool from "../../config/database.js";
+const { pool } = require("../../config/database");
 
-export const booksModel = {
+const booksModel = {
   findSlotsByPharmacy: async (p_id, from, to) => {
     try {
       const [rows] = await pool.query(
@@ -77,3 +77,5 @@ export const booksModel = {
     }
   },
 };
+
+module.exports = { booksModel };

@@ -1,10 +1,10 @@
 // controllers/reservation.controller.js
-import debug from "debug";
-import { fetchSlotsInRange, fetchAvailableDates, reservationService } from "./reservation.service.js";
+const debug = require("debug");
+const { fetchSlotsInRange, fetchAvailableDates, reservationService } = require("./reservation.service");
 
 const log = debug("app:reservation");
 
-export const getSlotsByPharmacy = async (req, res) => {
+const getSlotsByPharmacy = async (req, res) => {
   const { p_id } = req.params;
   const { from, to } = req.query;
 
@@ -22,34 +22,38 @@ export const getSlotsByPharmacy = async (req, res) => {
   }
 };
 
-export const getAvailableDates = async (req, res) => {
+const getAvailableDates = async (req, res) => {
   const { p_id } = req.params;
   try {
     const data = await fetchAvailableDates(p_id);
     res.json(data); // 프론트에서는 data 배열만 받도록
     log("slots", data);
   } catch (error) {
-    log("Error in getSlotsByPharmacy:", error);
+    log("Error in getAvailableDates:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
 
-export const createReservation = async (req, res) => {
+const createReservation = async (req, res) => {
   const { user_id, pharmacy_id, date, time, memo } = req.body;
 
   try {
-    const result = await reservationService.createReservation({
+    const result = await reservationService.createReservation(
       user_id,
       pharmacy_id,
       date,
       time,
-      memo,
-    });
-
-    res.status(201).json(result);
+      memo
+    );
+    res.status(201).json({ success: true, data: result });
   } catch (error) {
-    console.error("Error in reservationController.createReservation:", error);
+    log("Error in createReservation:", error);
     res.status(500).json({ success: false, error: error.message });
   }
+};
 
+module.exports = {
+  getSlotsByPharmacy,
+  getAvailableDates,
+  createReservation
 };

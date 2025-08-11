@@ -1,4 +1,4 @@
-import { pharmacyModel } from "./pharmacyModel.js";
+const { pharmacyModel } = require("./pharmacyModel");
 
 /**
  * 서비스 계층 (Business Logic Layer)
@@ -12,7 +12,7 @@ import { pharmacyModel } from "./pharmacyModel.js";
  * 모든 약국을 조회
  * (필요하다면 여기서 캐싱, 필터, 페이지네이션 로직을 넣을 수 있음)
  */
-export const fetchAll = async () => {
+const fetchAll = async () => {
   // 단순히 모델을 호출하여 데이터를 가져온 뒤 그대로 반환
   const rows = await pharmacyModel.findAll();
   return rows;
@@ -21,7 +21,7 @@ export const fetchAll = async () => {
 /**
  * 근처 약국 조회
  */
-export const fetchNearby = async (latitude, longitude, radiusKm = 2) => {
+const fetchNearby = async (latitude, longitude, radiusKm = 2) => {
   const rows = await pharmacyModel.findNearby(latitude, longitude, radiusKm);
   return rows;
 };
@@ -29,8 +29,8 @@ export const fetchNearby = async (latitude, longitude, radiusKm = 2) => {
 /**
  * 약국 ID로 조회
  */
-export const fetchById = async (p_id) => {
-  console.log("p_id in service", p_id);
-  const rows = await pharmacyModel.findById(p_id);
+const fetchById = async (id) => {
+  console.log("id in service", id);
+  const rows = await pharmacyModel.findById(id);
   return rows;
 };

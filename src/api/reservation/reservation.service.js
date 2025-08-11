@@ -1,8 +1,8 @@
 // services/reservation.service.js
-import { booksModel } from "./reservation.Model.js";
-import pool from "../../config/database.js";
+const { booksModel } = require("./reservation.Model");
+const { pool } = require("../../config/database");
 
-export const fetchSlotsInRange = async (p_id, from, to) => {
+const fetchSlotsInRange = async (p_id, from, to) => {
   try {
     const rows = await booksModel.findSlotsByPharmacy(p_id, from, to);
     return rows;
@@ -12,7 +12,7 @@ export const fetchSlotsInRange = async (p_id, from, to) => {
   }
 };
 
-export const fetchAvailableDates = async (p_id) => {
+const fetchAvailableDates = async (p_id) => {
   try {
     const rows = await booksModel.findAvailableDates(p_id);
     return rows;
@@ -69,5 +69,9 @@ const reservationService = {
   },
 };
 
-export { reservationService };
+module.exports = {
+  fetchSlotsInRange,
+  fetchAvailableDates,
+  reservationService
+};
   

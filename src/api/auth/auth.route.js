@@ -1,5 +1,6 @@
-import express from "express";
-import { signup, login, refreshToken, logout } from "./auth.controller.js";
+const express = require("express");
+const { signup, login, refreshToken, logout, getCurrentUser } = require("./auth.controller");
+const { isAuthenticated } = require("../../middlewares/auth.middleware");
 
 const router = express.Router();
 
@@ -63,8 +64,13 @@ const router = express.Router();
  */
 router.post("/signup", signup);
 
+// Public routes
 router.post("/login", login);
 router.post("/refresh-token", refreshToken);
+
+// Protected routes (require authentication)
+router.use(isAuthenticated);
+router.get("/me", getCurrentUser);
 router.post("/logout", logout);
 
 // @swagger

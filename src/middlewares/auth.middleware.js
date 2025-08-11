@@ -1,12 +1,12 @@
-import jwt from 'jsonwebtoken';
-import config from '../config/config.js';
-import { verifyToken } from '../config/jwt.config.js';
+const jwt = require('jsonwebtoken');
+const config = require('../config/config');
+const { verifyToken } = require('../config/jwt.config');
 
 /**
  * 인증 미들웨어
  * 헤더의 Authorization 토큰 또는 쿠키의 accessToken을 검증합니다.
  */
-export const isAuthenticated = (req, res, next) => {
+const isAuthenticated = (req, res, next) => {
   try {
     // 헤더에서 토큰 추출 (Bearer 토큰 또는 쿠키에서)
     const token = req.headers.authorization?.split(' ')[1] || req.cookies?.accessToken;
@@ -51,7 +51,7 @@ export const isAuthenticated = (req, res, next) => {
  * 관리자 권한 확인 미들웨어
  * isAuthenticated 미들웨어 이후에 사용해야 합니다.
  */
-export const isAdmin = (req, res, next) => {
+const isAdmin = (req, res, next) => {
   try {
     if (req.user && req.user.role === 'admin') {
       return next();
@@ -73,7 +73,7 @@ export const isAdmin = (req, res, next) => {
  * 역할 기반 접근 제어 미들웨어
  * @param {string[]} roles - 허용할 역할 배열
  */
-export const hasRole = (roles = []) => {
+const hasRole = (roles = []) => {
   return (req, res, next) => {
     try {
       if (!req.user) {

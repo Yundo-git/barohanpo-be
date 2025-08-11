@@ -1,9 +1,9 @@
-import pool from "../../config/database.js";
+const pool = require("../../config/database");
 
 /**
  * Pharmacy model
  */
-export const pharmacyModel = {
+const pharmacyModel = {
   /**
    * Fetch all pharmacies
    */
@@ -33,6 +33,7 @@ export const pharmacyModel = {
 
       const params = [latitude, longitude, latitude, radiusKm];
       const [rows] = await pool.query(query, params);
+      console.log("data", rows);
       return rows;
     } catch (error) {
       console.error("Error in pharmacyModel.findNearby:", error);
@@ -43,7 +44,9 @@ export const pharmacyModel = {
   findById: async (p_id) => {
     console.log("p_id in model", p_id);
     try {
-      const [rows] = await pool.query("SELECT * FROM pharmacy WHERE p_id = ?", [p_id]);
+      const [rows] = await pool.query("SELECT * FROM pharmacy WHERE p_id = ?", [
+        p_id,
+      ]);
       return rows[0];
     } catch (error) {
       console.error("Error in pharmacyModel.findById:", error);
@@ -52,6 +55,4 @@ export const pharmacyModel = {
   },
 };
 
-
-
-export default pharmacyModel;
+module.exports = pharmacyModel;

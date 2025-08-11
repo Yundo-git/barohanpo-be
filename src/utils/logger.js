@@ -1,10 +1,8 @@
-import winston from 'winston';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import config from '../config/config.js';
+const winston = require("winston");
+const path = require("path");
+const config = require("../config/config");
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// In CommonJS, __dirname is already available
 
 // 로그 레벨 정의
 const levels = {
@@ -17,18 +15,18 @@ const levels = {
 
 // 로그 레벨 색상 설정
 const colors = {
-  error: 'red',
-  warn: 'yellow',
-  info: 'green',
-  http: 'magenta',
-  debug: 'blue',
+  error: "red",
+  warn: "yellow",
+  info: "green",
+  http: "magenta",
+  debug: "blue",
 };
 
 winston.addColors(colors);
 
 // 로그 포맷 설정
 const format = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
   winston.format.colorize({ all: true }),
   winston.format.printf(
     (info) => `[${info.timestamp}] ${info.level}: ${info.message}`
@@ -36,7 +34,7 @@ const format = winston.format.combine(
 );
 
 // 로그 저장 경로
-const logDir = path.join(__dirname, '../../logs');
+const logDir = path.join(__dirname, "../../logs");
 
 // 로거 옵션
 const transports = [
@@ -47,20 +45,20 @@ const transports = [
       winston.format.simple()
     ),
   }),
-  
+
   // 에러 로그 파일
   new winston.transports.File({
-    filename: path.join(logDir, 'error.log'),
-    level: 'error',
+    filename: path.join(logDir, "error.log"),
+    level: "error",
     format: winston.format.combine(
       winston.format.timestamp(),
       winston.format.json()
     ),
   }),
-  
+
   // 전체 로그 파일
   new winston.transports.File({
-    filename: path.join(logDir, 'combined.log'),
+    filename: path.join(logDir, "combined.log"),
     format: winston.format.combine(
       winston.format.timestamp(),
       winston.format.json()
@@ -70,7 +68,7 @@ const transports = [
 
 // 로거 생성
 const logger = winston.createLogger({
-  level: config.nodeEnv === 'development' ? 'debug' : 'info',
+  level: config.nodeEnv === "development" ? "debug" : "info",
   levels,
   format,
   transports,
@@ -78,14 +76,16 @@ const logger = winston.createLogger({
 });
 
 // 프로덕션 환경이 아닌 경우 파일에 로그를 저장하지 않음
-if (config.nodeEnv !== 'production') {
+if (config.nodeEnv !== "production") {
   logger.clear();
-  logger.add(new winston.transports.Console({
-    format: winston.format.combine(
-      winston.format.colorize(),
-      winston.format.simple()
-    ),
-  }));
+  logger.add(
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.simple()
+      ),
+    })
+  );
 }
 
-export default logger;
+module.exports = logger;

@@ -1,17 +1,16 @@
-import pool from "../../config/database.js";
+const pool = require("../../config/database");
 
 /**
- * 인증 관련 데이터베이스 모델
+ * Authentication database model
  */
-export const authModel = {
+const authModel = {
   /**
-   * 사용자 회원가입 처리
-   * @param {string} email - 사용자 이메일
-   * @param {string} password - 암호화된 비밀번호
-   * @param {string} name - 사용자 이름
-   * @param {string} phone - 전화번호
-   * @returns {Promise<Object>} 생성된 사용자 정보
-   * @throws {Error} 데이터베이스 오류 발생 시
+   * Create a new user account
+   * @param {string} email - User email
+   * @param {string} password - Hashed password
+   * @param {string} name - User's name
+   * @param {string} phone - Phone number
+   * @returns {Promise<Object>} Created user info
    */
   signup: async (email, password, name, phone) => {
     try {
@@ -22,17 +21,18 @@ export const authModel = {
         [email, password, name, phone]
       );
 
-      // 생성된 사용자 정보 조회
+      // Fetch the created user
       const [user] = await pool.query(
-        "SELECT user_id, email, name, phone FROM users WHERE email = ?",
-        [email]
+        `SELECT user_id as id, email, name, phone, role, created_at 
+         FROM users WHERE user_id = ?`,
+        [rows.insertId]
       );
 
       return user[0];
     } catch (error) {
       console.error("Error in authModel.signup:", error);
 
-      // 중복 이메일 체크
+      // Check for duplicate email
       if (error.code === "ER_DUP_ENTRY") {
         throw new Error("이미 사용 중인 이메일입니다.");
       }
@@ -42,14 +42,14 @@ export const authModel = {
   },
 
   /**
-   * 이메일로 사용자 조회
-   * @param {string} email - 사용자 이메일
-   * @returns {Promise<Object|null>} 사용자 정보 또는 null
+   * Find user by email
+   * @param {string} email - User email
+   * @returns {Promise<Object|null>} User info or null if not found
    */
   findByEmail: async (email) => {
     try {
       const [rows] = await pool.query(
-        `SELECT user_id, email, password, name, phone, role
+        `SELECT user_id as id, email, password, name, phone, role, created_at
          FROM users 
          WHERE email = ?`,
         [email]
@@ -62,27 +62,127 @@ export const authModel = {
   },
 
   /**
-   * 로그인 처리를 위한 사용자 조회 (비밀번호 검증 전용)
-   * @param {string} email - 사용자 이메일
-   * @returns {Promise<Object>} 사용자 정보 (비밀번호 포함)
-   * @deprecated 비밀번호 검증은 서비스 레이어에서 처리하도록 변경되었습니다.
+   * Find user by ID
+   * @param {number} userId - User ID
+   * @returns {Promise<Object|null>} User info without password or null if not found
    */
-  login: async (email) => {
+  findById: async (userId) => {
     try {
       const [rows] = await pool.query(
-        `SELECT email, password, name, phone, role, created_at, updated_at
+        `SELECT user_id as id, email, name, phone, role, created_at
          FROM users 
-         WHERE email = ?`,
-        [email]
+         WHERE user_id = ?`,
+        [userId]
       );
-
-      if (rows.length === 0) {
-        throw new Error("존재하지 않는 이메일입니다.");
-      }
-
-      return rows[0];
+      return rows[0] || null;
     } catch (error) {
-      console.error("Error in authModel.login:", error);
+      console.error("Error in authModel.findById:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Store a refresh token in the database
+   * @param {Object} tokenData - Token data
+   * @param {string} tokenData.userId - User ID
+   * @param {string} tokenData.token - Hashed refresh token
+   * @param {string} tokenData.jti - JWT ID for the token
+   * @param {Date} tokenData.expiresAt - Token expiration date
+   * @returns {Promise<Object>} Stored token info
+   */
+  storeRefreshToken: async ({ userId, token, jti, expiresAt }) => {
+    try {
+      await pool.query(
+        `INSERT INTO refresh_tokens 
+         (user_id, token, jti, expires_at, created_at) 
+         VALUES (?, ?, ?, ?, NOW())`,
+        [userId, token, jti, expiresAt]
+      );
+      
+      return { userId, jti, expiresAt };
+    } catch (error) {
+      console.error("Error in authModel.storeRefreshToken:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Find a refresh token by its JWT ID
+   * @param {string} jti - JWT ID of the token
+   * @returns {Promise<Object|null>} Token info or null if not found
+   */
+  findRefreshTokenByJti: async (jti) => {
+    try {
+      const [rows] = await pool.query(
+        `SELECT id, user_id as userId, token, jti, expires_at as expiresAt, 
+                revoked, created_at as createdAt
+         FROM refresh_tokens 
+         WHERE jti = ?`,
+        [jti]
+      );
+      return rows[0] || null;
+    } catch (error) {
+      console.error("Error in authModel.findRefreshTokenByJti:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Invalidate a refresh token by its JWT ID
+   * @param {string} jti - JWT ID of the token to invalidate
+   * @returns {Promise<boolean>} True if token was invalidated
+   */
+  invalidateRefreshToken: async (jti) => {
+    try {
+      const [result] = await pool.query(
+        `UPDATE refresh_tokens 
+         SET revoked = TRUE, revoked_at = NOW() 
+         WHERE jti = ? AND revoked = FALSE`,
+        [jti]
+      );
+      
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error("Error in authModel.invalidateRefreshToken:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Invalidate all refresh tokens for a user
+   * @param {number} userId - User ID
+   * @returns {Promise<boolean>} True if tokens were invalidated
+   */
+  invalidateAllUserRefreshTokens: async (userId) => {
+    try {
+      const [result] = await pool.query(
+        `UPDATE refresh_tokens 
+         SET revoked = TRUE, revoked_at = NOW() 
+         WHERE user_id = ? AND revoked = FALSE`,
+        [userId]
+      );
+      
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error("Error in authModel.invalidateAllUserRefreshTokens:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Clean up expired refresh tokens
+   * @returns {Promise<number>} Number of tokens deleted
+   */
+  cleanupExpiredTokens: async () => {
+    try {
+      const [result] = await pool.query(
+        `DELETE FROM refresh_tokens 
+         WHERE expires_at < NOW() OR revoked = TRUE`
+      );
+      
+      return result.affectedRows;
+    } catch (error) {
+      console.error("Error in authModel.cleanupExpiredTokens:", error);
       throw error;
     }
   },

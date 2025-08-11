@@ -1,86 +1,113 @@
-import { authModel } from "./auth.Model.js";
-import bcrypt from "bcryptjs";
-import {
-  generateAccessToken,
-  generateRefreshToken,
+const { authModel } = require("./auth.Model");
+const bcrypt = require("bcryptjs");
+const { 
+  generateAccessToken, 
+  generateRefreshToken, 
   verifyToken,
-} from "../../config/jwt.config.js";
+  generateTokenId
+} = require("../../config/jwt.config");
+const { tokenService } = require("../../services/token.service");
 
 /**
- * 사용자 회원가입 서비스
- * @param {string} email - 사용자 이메일
- * @param {string} password - 비밀번호 (8자 이상)
- * @param {string} name - 사용자 이름
- * @param {string} phone - 전화번호 (하이픈 제외)
- * @returns {Promise<Object>} 생성된 사용자 정보
- * @throws {Error} 회원가입 과정에서 발생한 에러
+ * @typedef {import('./auth.types').User} User
+ * @typedef {import('./auth.types').TokenPayload} TokenPayload
+ * @typedef {import('./auth.types').AuthTokens} AuthTokens
+ * @typedef {import('./auth.types').LoginResponse} LoginResponse
+ * @typedef {import('./auth.types').RefreshTokenResponse} RefreshTokenResponse
  */
-export const signup = async (email, password, name, phone) => {
+
+/**
+ * User signup service
+ * @param {string} email - User email
+ * @param {string} password - Password (min 8 chars)
+ * @param {string} name - User's name
+ * @param {string} phone - Phone number (without hyphens)
+ * @returns {Promise<User>} Created user info without sensitive data
+ * @throws {Error} Error during signup process
+ */
+const signup = async (email, password, name, phone) => {
   try {
-    // 입력값 검증
+    // Input validation
     if (!email || !password || !name || !phone) {
-      throw new Error("필수 입력값이 누락되었습니다.");
+      throw new Error("All fields are required");
     }
 
     if (password.length < 8) {
-      throw new Error("비밀번호는 8자 이상이어야 합니다.");
+      throw new Error("Password must be at least 8 characters long");
     }
 
-    // 비밀번호 해시 처리
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 해시된 비밀번호로 회원가입 처리
-    const row = await authModel.signup(email, hashedPassword, name, phone);
-    return row;
+    // Create user with hashed password
+    const user = await authModel.signup(email, hashedPassword, name, phone);
+    return user;
   } catch (error) {
     console.error("Error in authService.signup:", error);
+    
+    // Handle duplicate email error
+    if (error.message.includes("ER_DUP_ENTRY") || error.message.includes("duplicate")) {
+      throw new Error("Email already in use");
+    }
+    
     throw error;
   }
 };
 
 /**
- * 사용자 로그인 서비스
- * @param {string} email - 사용자 이메일
- * @param {string} password - 비밀번호
- * @returns {Promise<Object>} 사용자 정보와 JWT 토큰
- * @throws {Error} 로그인 과정에서 발생한 에러
+ * User login service
+ * @param {string} email - User email
+ * @param {string} password - User password
+ * @returns {Promise<LoginResponse>} User info and auth tokens
+ * @throws {Error} If login fails with message indicating the reason
  */
-export const login = async (email, password) => {
+const login = async (email, password) => {
   try {
-    // 1. 이메일로 사용자 조회
+    // 1. Find user by email
     const user = await authModel.findByEmail(email);
-
+    
+    // 2. Check if user exists
     if (!user) {
-      throw new Error("존재하지 않는 이메일입니다.");
+      throw new Error("Invalid email or password");
     }
 
-    // 2. 비밀번호 검증
+    // 3. Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    console.log("isPasswordValid", isPasswordValid);
-    console.log("user.password", user.password);
-    console.log("password", password);
     if (!isPasswordValid) {
-      throw new Error("비밀번호가 일치하지 않습니다.");
+      throw new Error("Invalid email or password");
     }
 
-    // 토큰 생성
+    // 4. Generate tokens
     const userPayload = {
       id: user.id,
       email: user.email,
       name: user.name,
+      role: user.role
     };
 
-    const accessToken = generateAccessToken(userPayload);
-    const refreshToken = generateRefreshToken(userPayload);
+    // 5. Generate token ID for refresh token rotation
+    const jti = await tokenService.generateUniqueTokenId();
+    
+    // 6. Generate tokens with jti
+    const accessToken = generateAccessToken(userPayload, jti);
+    const refreshToken = generateRefreshToken(userPayload, jti);
+    
+    // 7. Store refresh token in database
+    await tokenService.storeRefreshToken({
+      userId: user.id,
+      token: refreshToken,
+      jti,
+      expiresAt: new Date(Date.now() + (process.env.REFRESH_TOKEN_TTL_MS || 7 * 24 * 60 * 60 * 1000))
+    });
 
-    // 4. 비밀번호 제외한 사용자 정보 반환
+    // 8. Return user info (without password) and tokens
     const { password: _, ...userWithoutPassword } = user;
-
+    
     return {
       user: userWithoutPassword,
-      token: accessToken,
-      refreshToken: refreshToken,
+      accessToken,
+      refreshToken
     };
   } catch (error) {
     console.error("Error in authService.login:", error);
@@ -89,43 +116,131 @@ export const login = async (email, password) => {
 };
 
 /**
- * 리프레시 토큰을 검증하고 새로운 액세스 토큰을 발급
- * @param {string} refreshToken - 리프레시 토큰
- * @returns {Promise<Object>} 새로운 액세스 토큰과 리프레시 토큰
- * @throws {Error} 토큰 갱신 과정에서 발생한 에러
+ * Refresh access token using a valid refresh token
+ * Implements refresh token rotation for better security
+ * @param {string} refreshToken - The refresh token from cookie
+ * @returns {Promise<{accessToken: string, refreshToken: string}>} New tokens
+ * @throws {Error} If refresh token is invalid or expired
  */
-export const refreshAccessToken = async (refreshToken) => {
+const refreshAccessToken = async (refreshToken) => {
   if (!refreshToken) {
-    throw new Error("리프레시 토큰이 필요합니다.");
+    throw new Error("Refresh token is required");
   }
 
-  // 리프레시 토큰 검증 (true를 전달하여 리프레시 토큰임을 명시)
+  // 1. Verify the refresh token
   const { success, decoded, message } = verifyToken(refreshToken, true);
-
-  if (!success) {
-    throw new Error(`토큰 검증 실패: ${message}`);
+  
+  if (!success || !decoded) {
+    throw new Error(message || "Invalid refresh token");
   }
 
-  // 리프레시 토큰에서 사용자 정보 추출
-  const { id, email, name } = decoded;
+  // 2. Check if the token has been revoked or is still valid in the database
+  const isValidToken = await tokenService.validateRefreshToken(refreshToken, decoded.jti);
+  if (!isValidToken) {
+    throw new Error("Invalid or expired refresh token");
+  }
 
-  // 사용자 존재 여부 확인 (선택사항, 필요에 따라 구현)
-  // const user = await authModel.findById(id);
-  // if (!user) {
-  //   throw new Error('사용자를 찾을 수 없습니다.');
-  // }
+  // 3. Get user from database to ensure they still exist and have valid permissions
+  const user = await authModel.findById(decoded.id);
+  if (!user) {
+    throw new Error("User not found");
+  }
 
-  // 새로운 액세스 토큰 발급
-  const newAccessToken = generateAccessToken({ id, email, name });
+  // 4. Invalidate the current refresh token (one-time use)
+  await tokenService.invalidateRefreshToken(decoded.jti);
 
-  // 리프레시 토큰도 갱신 (선택사항)
-  const newRefreshToken = generateRefreshToken({ id, email, name });
+  // 5. Prepare user payload for new tokens
+  const userPayload = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role
+  };
 
+  // 6. Generate new token ID for the new refresh token
+  const newJti = await tokenService.generateUniqueTokenId();
+  
+  // 7. Generate new tokens
+  const newAccessToken = generateAccessToken(userPayload, newJti);
+  const newRefreshToken = generateRefreshToken(userPayload, newJti);
+  
+  // 8. Store the new refresh token in the database
+  await tokenService.storeRefreshToken({
+    userId: user.id,
+    token: newRefreshToken,
+    jti: newJti,
+    expiresAt: new Date(Date.now() + (process.env.REFRESH_TOKEN_TTL_MS || 7 * 24 * 60 * 60 * 1000))
+  });
+
+  // 9. Return the new tokens
   return {
     accessToken: newAccessToken,
-    refreshToken: newRefreshToken,
-    user: { id, email, name },
+    refreshToken: newRefreshToken
   };
 };
 
-export default { signup, login, refreshAccessToken };
+/**
+ * Logout service - invalidates the current user's refresh tokens
+ * @param {string} userId - The ID of the user logging out
+ * @param {string} [jti] - Optional JWT ID to invalidate a specific token
+ * @returns {Promise<boolean>} True if logout was successful
+ * @throws {Error} If there's an error during logout
+ */
+const logout = async (userId, jti) => {
+  try {
+    if (!userId) {
+      throw new Error('User ID is required for logout');
+    }
+
+    // If a specific token JTI is provided, invalidate just that token
+    if (jti) {
+      await tokenService.invalidateRefreshToken(jti);
+      return true;
+    }
+    
+    // Otherwise, invalidate all refresh tokens for the user
+    await authModel.invalidateAllUserRefreshTokens(userId);
+    return true;
+  } catch (error) {
+    console.error('Error in authService.logout:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get current user's profile
+ * @param {number} userId - The ID of the current user
+ * @returns {Promise<Object>} User profile data without sensitive information
+ * @throws {Error} If user is not found or there's an error
+ */
+const getCurrentUser = async (userId) => {
+  try {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    // Get user from database
+    const user = await authModel.findById(userId);
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Remove sensitive information
+    const { password, ...userWithoutPassword } = user;
+    
+    return userWithoutPassword;
+  } catch (error) {
+    console.error('Error in authService.getCurrentUser:', error);
+    throw error;
+  }
+};
+
+module.exports = { 
+  signup, 
+  login, 
+  refreshAccessToken, 
+  logout,
+  getCurrentUser,
+  invalidateRefreshToken
+};

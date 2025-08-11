@@ -1,12 +1,13 @@
 {
   "name": "barohanpo-be",
   "version": "1.0.0",
-  "type": "module",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "set DEBUG=app:* && nodemon --delay 2000ms --signal SIGTERM --exitcrash src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --detectOpenHandles --forceExit",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "generate-swagger": "node generate-swagger.js",
     "deploy-docs": "gh-pages -d docs -b gh-pages"
   },
@@ -49,7 +50,11 @@
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/supertest": "^6.0.3",
     "gh-pages": "^6.3.0",
-    "nodemon": "^3.0.1"
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^7.1.4"
   }
 }

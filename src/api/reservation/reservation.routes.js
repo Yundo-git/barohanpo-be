@@ -1,6 +1,6 @@
 // routes/reservation.router.js
-import express from "express";
-import { getSlotsByPharmacy, getAvailableDates, createReservation } from "./reservation.controller.js";
+const express = require("express");
+const { getSlotsByPharmacy, getAvailableDates, createReservation } = require("./reservation.controller");
 
 const router = express.Router();
 
@@ -9,4 +9,4 @@ router.get("/:p_id/available-dates", getAvailableDates);
 
 router.post("/", createReservation);
 
-export default router;
+module.exports = router;

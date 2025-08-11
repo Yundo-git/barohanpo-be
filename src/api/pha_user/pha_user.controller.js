@@ -1,6 +1,6 @@
-import { fetchAll, fetchById } from "./pha_user.service.js";
+const { fetchAll, fetchById } = require("./pha_user.service");
 
-export const getAllpha_user = async (req, res) => {
+const getAllpha_user = async (req, res) => {
   try {
     const rows = await fetchAll();
     res.json({ success: true, count: rows.length, data: rows });
@@ -10,7 +10,7 @@ export const getAllpha_user = async (req, res) => {
   }
 };
 
-export const getpha_userById = async (req, res) => {
+const getpha_userById = async (req, res) => {
   const { p_id } = req.params;
   try {
     const row = await fetchById(p_id);
@@ -19,4 +19,9 @@ export const getpha_userById = async (req, res) => {
     console.error("Error in pha_userController.getpha_userById:", error);
     res.status(500).json({ success: false, error: error.message });
   }
+};
+
+module.exports = {
+  getAllpha_user,
+  getpha_userById
 };
