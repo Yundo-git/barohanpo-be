@@ -9,9 +9,9 @@ const PORT = process.env.PORT || 5000;
 
 // 서버 시작
 const server = app.listen(PORT, "0.0.0.0", async () => {
-  console.log(`\n🚀 Server is running on http://localhost:${PORT}`);
-  console.log(`📡 Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`🕒 Started at: ${new Date().toISOString()}`);
+  console.log(`\nServer is running on http://localhost:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`Started at: ${new Date().toISOString()}`);
   console.log("Swagger 문서: http://localhost:5000/api-docs");
   
   // 슬롯 매니저 시작 (7일치 슬롯 유지)
@@ -23,7 +23,7 @@ const server = app.listen(PORT, "0.0.0.0", async () => {
   }
 });
 
-// Graceful shutdown
+
 const shutdown = async () => {
   console.log('Shutting down gracefully...');
   

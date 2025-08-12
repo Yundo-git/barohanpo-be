@@ -1,22 +1,19 @@
 // models/booksModel.js
-const { pool } = require("../../config/database");
+const db = require("../../config/database");
 
 const booksModel = {
   findSlotsByPharmacy: async (p_id, from, to) => {
     try {
-      const [rows] = await pool.query(
-        `
-        SELECT
+      const [rows] = await db.query(
+        `SELECT
           DATE(slot_date) AS date,
           SUM(CASE WHEN is_available = TRUE THEN 1 ELSE 0 END) > 0 AS is_available
         FROM reservation_slot
         WHERE p_id = ? AND slot_date BETWEEN ? AND ?
         GROUP BY slot_date
-        ORDER BY slot_date
-        `,
+        ORDER BY slot_date`,
         [p_id, from, to]
       );
-
       return rows;
     } catch (error) {
       console.error("Error in booksModel.findSlotsByPharmacy:", error);
@@ -27,53 +24,82 @@ const booksModel = {
   findAvailableDates: async (p_id) => {
     try {
       // 1. 먼저 예약 가능한 날짜들을 가져옵니다.
-      const [rows] = await pool.query(
-        `
-        SELECT
-          DATE_FORMAT(slot_date, '%Y-%m-%d') AS date,
-          DATE_FORMAT(slot_time, '%H:%i') AS time,
-          is_available
-        FROM reservation_slot
-        WHERE p_id = ? AND is_available = TRUE
-        ORDER BY slot_date, slot_time
-        `,
+      const [rows] = await db.query(
+        `SELECT DISTINCT DATE(slot_date) as date 
+         FROM reservation_slot 
+         WHERE p_id = ? AND is_available = TRUE 
+         AND slot_date >= CURDATE() 
+         ORDER BY slot_date`,
         [p_id]
       );
 
-      const grouped = {};
-
+      // 2. 각 날짜별로 예약 가능한 시간대가 있는지 확인합니다.
+      const availableDates = [];
       for (const row of rows) {
-        if (!grouped[row.date]) {
-          grouped[row.date] = {
-            date: row.date,
-            is_available: true,
-            times: [],
-          };
+        const date = row.date;
+        const [timeSlots] = await db.query(
+          `SELECT COUNT(*) as count 
+           FROM reservation_slot 
+           WHERE p_id = ? AND DATE(slot_date) = ? AND is_available = TRUE`,
+          [p_id, date]
+        );
+
+        if (timeSlots[0].count > 0) {
+          availableDates.push({
+            date: date,
+            is_available: true
+          });
         }
-        grouped[row.date].times.push(row.time); // 'HH:mm' 문자열
       }
 
-      return Object.values(grouped);
+      return availableDates;
     } catch (error) {
-      console.error("Error in booksModel.findAvailableDates:", error);
+      console.error('Error in findAvailableDates:', error);
       throw error;
     }
   },
 
-  //예약하기
-  insertReservation: async (conn, user_id, p_id, date, time, memo) => {
+  // 예약하기
+  insertReservation: async (user_id, p_id, date, time, memo) => {
+    const conn = await db.getConnection();
     try {
+      await conn.beginTransaction();
+      
+      // Check if the slot is still available
+      const [slots] = await conn.query(
+        `SELECT id FROM reservation_slot 
+         WHERE p_id = ? AND DATE(slot_date) = ? AND slot_time = ? AND is_available = TRUE
+         FOR UPDATE`,
+        [p_id, date, time]
+      );
+
+      if (slots.length === 0) {
+        throw new Error('The selected time slot is no longer available');
+      }
+
+      // Insert the reservation
       const [result] = await conn.query(
-        `
-      INSERT INTO books (user_id, p_id, book_date, book_time, memo)
-      VALUES (?, ?, ?, ?, ?)
-      `,
+        `INSERT INTO reservation (user_id, p_id, date, time, memo) 
+         VALUES (?, ?, ?, ?, ?)`,
         [user_id, p_id, date, time, memo || null]
       );
-      return result.insertId;
+
+      // Mark the slot as not available
+      await conn.query(
+        `UPDATE reservation_slot 
+         SET is_available = FALSE 
+         WHERE p_id = ? AND DATE(slot_date) = ? AND slot_time = ?`,
+        [p_id, date, time]
+      );
+
+      await conn.commit();
+      return result;
     } catch (error) {
-      console.error("Error in booksModel.insertReservation:", error);
+      console.error('Error in insertReservation:', error);
+      if (conn) await conn.rollback();
       throw error;
+    } finally {
+      if (conn) conn.release();
     }
   },
 };

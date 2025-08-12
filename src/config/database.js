@@ -150,7 +150,16 @@ const query = async (sql, params, connection = null) => {
 
 // 애플리케이션 시작 시 연결 테스트 실행
 if (process.env.NODE_ENV !== "test") {
-  testConnection();
+  testConnection().catch(err => {
+    console.error('Failed to test database connection:', err);
+    process.exit(1);
+  });
 }
 
-module.exports = pool;
+// Promise-based pool export
+module.exports = {
+  pool,
+  getConnection: () => pool.getConnection(),
+  query: (sql, params) => pool.query(sql, params),
+  execute: (sql, params) => pool.execute(sql, params)
+};

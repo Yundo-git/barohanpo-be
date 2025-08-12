@@ -8,17 +8,33 @@ const getSlotsByPharmacy = async (req, res) => {
   const { p_id } = req.params;
   const { from, to } = req.query;
 
+  console.log(`[API] getSlotsByPharmacy - p_id: ${p_id}, from: ${from}, to: ${to}`);
+
   if (!from || !to) {
-    return res.status(400).json({ success: false, error: "from, to 값 필요" });
+    console.error('[ERROR] Missing required parameters - from or to is missing');
+    return res.status(400).json({ 
+      success: false, 
+      error: "from, to 값이 필요합니다.",
+      received: { p_id, from, to }
+    });
   }
 
   try {
+    console.log(`[API] Fetching slots for pharmacy ${p_id} from ${from} to ${to}`);
     const data = await fetchSlotsInRange(p_id, from, to);
-    res.json(data); // 프론트에서는 data 배열만 받도록
-    log("slots", data);
+    console.log(`[API] Found ${data.length} days of slot data`);
+    res.json(data);
   } catch (error) {
-    log("Error in getSlotsByPharmacy:", error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('[ERROR] getSlotsByPharmacy failed:', {
+      error: error.message,
+      stack: error.stack,
+      params: { p_id, from, to }
+    });
+    res.status(500).json({ 
+      success: false, 
+      error: '서버 오류가 발생했습니다.',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
