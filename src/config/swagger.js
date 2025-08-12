@@ -1,9 +1,6 @@
-import swaggerJSDoc from "swagger-jsdoc";
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const swaggerJSDoc = require("swagger-jsdoc");
+const path = require('path');
+// Using built-in __dirname for CommonJS
 
 const options = {
   definition: {
@@ -42,4 +39,4 @@ const options = {
 
 const swaggerSpec = swaggerJSDoc(options);
 
-export default swaggerSpec;
+module.exports = swaggerSpec;

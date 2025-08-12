@@ -99,3 +99,9 @@ const hasRole = (roles = []) => {
     }
   };
 };
+
+module.exports = {
+  isAuthenticated,
+  isAdmin,
+  hasRole
+};;

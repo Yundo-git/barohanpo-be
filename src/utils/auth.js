@@ -1,11 +1,11 @@
-import bcrypt from 'bcryptjs';
+const bcrypt = require('bcryptjs');
 
 /**
  * Hash a password
  * @param {string} password - Plain text password
  * @returns {Promise<string>} Hashed password
  */
-export const hashPassword = async (password) => {
+const hashPassword = async (password) => {
   const salt = await bcrypt.genSalt(10);
   return await bcrypt.hash(password, salt);
 };
@@ -16,7 +16,7 @@ export const hashPassword = async (password) => {
  * @param {string} hashedPassword - Hashed password
  * @returns {Promise<boolean>} True if passwords match
  */
-export const comparePasswords = async (password, hashedPassword) => {
+const comparePasswords = async (password, hashedPassword) => {
   return await bcrypt.compare(password, hashedPassword);
 };
 
@@ -25,7 +25,7 @@ export const comparePasswords = async (password, hashedPassword) => {
  * @param {number} length - Length of the password
  * @returns {string} Random password
  */
-export const generateRandomPassword = (length = 12) => {
+const generateRandomPassword = (length = 12) => {
   const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]\\:;?><,./-=';
   let password = '';
   const values = new Uint32Array(length);
@@ -37,4 +37,10 @@ export const generateRandomPassword = (length = 12) => {
   }
   
   return password;
+};
+
+module.exports = {
+  hashPassword,
+  comparePasswords,
+  generateRandomPassword
 };

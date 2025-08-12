@@ -55,4 +55,5 @@ const pharmacyModel = {
   },
 };
 
+// Export the pharmacyModel object directly
 module.exports = pharmacyModel;

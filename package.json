@@ -1,6 +1,7 @@
 {
   "name": "barohanpo-be",
   "version": "1.0.0",
+  "type": "commonjs",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

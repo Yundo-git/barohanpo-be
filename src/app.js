@@ -30,9 +30,6 @@ const allowedOrigins = [
   'https://barohanpo-fe.vercel.app',
   'https://www.barohanpo.xyz',
   'https://barohanpo.xyz',
-  
-  // Add staging/test environments here if needed
-  // 'https://staging.barohanpo.xyz',
 ];
 
 // CORS configuration

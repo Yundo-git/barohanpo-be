@@ -1,4 +1,4 @@
-import Joi from "joi";
+const Joi = require("joi");
 
 /**
  * 약국 생성/수정시 사용하는 공통 필드 스키마
@@ -26,14 +26,14 @@ const baseSchema = {
 /**
  * POST /api/pharmacy  body 검증
  */
-export const createPharmacySchema = Joi.object({
+const createPharmacySchema = Joi.object({
   ...baseSchema,
 });
 
 /**
  * PUT /api/pharmacy/:id body 검증 (모든 필드 optional)
  */
-export const updatePharmacySchema = Joi.object({
+const updatePharmacySchema = Joi.object({
   name: baseSchema.name.optional(),
   address: baseSchema.address.optional(),
   phone: baseSchema.phone.optional(),
@@ -42,9 +42,15 @@ export const updatePharmacySchema = Joi.object({
 /**
  * ID 파라미터 검증 스키마
  */
-export const idParamSchema = Joi.object({
+const idParamSchema = Joi.object({
   id: Joi.number().integer().positive().required().messages({
     "number.base": "id는 숫자여야 합니다.",
     "any.required": "id 파라미터가 필요합니다.",
   }),
 });
+
+module.exports = {
+  createPharmacySchema,
+  updatePharmacySchema,
+  idParamSchema
+};

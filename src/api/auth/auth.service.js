@@ -236,6 +236,9 @@ const getCurrentUser = async (userId) => {
   }
 };
 
+// Use the invalidateRefreshToken method from authModel
+const invalidateRefreshToken = authModel.invalidateRefreshToken;
+
 module.exports = { 
   signup, 
   login, 

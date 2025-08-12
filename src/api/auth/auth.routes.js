@@ -96,4 +96,4 @@ router.post("/logout", logout);
 //           type: string
 //           format: date-time
 
-export default router;
+module.exports = router;

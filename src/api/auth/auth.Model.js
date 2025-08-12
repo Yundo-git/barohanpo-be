@@ -187,3 +187,5 @@ const authModel = {
     }
   },
 };
+
+module.exports = { authModel };

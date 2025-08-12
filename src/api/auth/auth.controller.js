@@ -1,4 +1,4 @@
-const authService = require("./auth.servise");
+const authService = require("./auth.service");
 const { sendError, ERROR_TYPES } = require("../../utils/errorHandler");
 const jwt = require("jsonwebtoken");
 

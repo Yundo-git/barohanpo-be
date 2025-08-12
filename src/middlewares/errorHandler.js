@@ -1,4 +1,4 @@
-import logger from "../utils/logger.js";
+const logger = require("../utils/logger");
 
 /**
  * 에러 핸들링 미들웨어
@@ -55,10 +55,13 @@ const errorHandler = (err, req, res, next) => {
 /**
  * 404 에러 핸들러
  */
-export const notFoundHandler = (req, res, next) => {
+const notFoundHandler = (req, res, next) => {
   const error = new Error(`Not Found - ${req.originalUrl}`);
   res.status(404);
   next(error);
 };
 
-export default errorHandler;
+module.exports = {
+  errorHandler,
+  notFoundHandler
+};

@@ -2,7 +2,7 @@ const express = require("express");
 const pharmacyRoutes = require("../api/pharmacy/pharmacy.routes");
 const pha_userRoutes = require("../api/pha_user/pha_user.routes");
 const booksRoutes = require("../api/reservation/reservation.routes");
-const authRoutes = require("../api/auth/auth.route");
+const authRoutes = require("../api/auth/auth.routes");
 
 const router = express.Router();
 

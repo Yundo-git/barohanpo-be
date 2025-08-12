@@ -1,4 +1,4 @@
-const { pharmacyModel } = require("./pharmacyModel");
+const pharmacyModel = require("./pharmacyModel");
 
 /**
  * 서비스 계층 (Business Logic Layer)
@@ -33,4 +33,10 @@ const fetchById = async (id) => {
   console.log("id in service", id);
   const rows = await pharmacyModel.findById(id);
   return rows;
+};
+
+module.exports = {
+  fetchAll,
+  fetchNearby,
+  fetchById
 };

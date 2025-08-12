@@ -28,43 +28,66 @@ pool.on("enqueue", () => {
 const testConnection = async () => {
   let connection;
   try {
-    logger.info("🔍 Connecting to database...", {
+    // 데이터베이스 연결 정보 로깅 (비밀번호는 제외)
+    console.log("🔍 Attempting to connect to database with config:", {
       host: config.db.host,
       port: config.db.port,
       database: config.db.database,
+      user: config.db.user,
+      // 비밀번호는 보안상 로그에 남기지 않음
     });
 
+    // 연결 시도
     connection = await pool.getConnection();
+    console.log("✅ Successfully connected to MySQL server");
+
+    // 데이터베이스 존재 여부 확인
+    const [dbs] = await connection.query("SHOW DATABASES LIKE ?", [config.db.database]);
+    if (dbs.length === 0) {
+      console.error(`❌ Database '${config.db.database}' does not exist`);
+      throw new Error(`Database '${config.db.database}' does not exist`);
+    }
+    console.log(`✅ Database '${config.db.database}' exists`);
+
+    // 테이블 존재 여부 확인
+    const [tables] = await connection.query("SHOW TABLES");
+    console.log(`📊 Found ${tables.length} tables in the database`);
 
     // 데이터베이스 버전 확인
     const [rows] = await connection.query("SELECT VERSION() as version");
     const version = rows[0].version;
 
-    logger.info("✅ Database connection successful!", {
+    console.log("✅ Database connection successful!", {
       version,
       threadId: connection.threadId,
     });
   } catch (error) {
-    logger.error("❌ Database connection failed!", {
-      error: {
-        code: error.code,
-        errno: error.errno,
-        sqlState: error.sqlState,
-        sqlMessage: error.sqlMessage,
-        message: error.message,
-      },
-      config: {
-        host: config.db.host,
-        port: config.db.port,
-        database: config.db.database,
-        user: config.db.user,
-      },
+    console.error("❌ Database connection failed!");
+    console.error("Error details:", {
+      code: error.code,
+      errno: error.errno,
+      sqlState: error.sqlState,
+      sqlMessage: error.sqlMessage,
+      message: error.message,
+      stack: error.stack
+    });
+    
+    console.error("Connection config:", {
+      host: config.db.host,
+      port: config.db.port,
+      database: config.db.database,
+      user: config.db.user,
+      // 비밀번호는 보안상 로그에 남기지 않음
     });
 
     // 연결이 성공했지만 쿼리 실행 중 오류가 발생한 경우
-    if (connection) {
-      logger.info("ℹ️ Releasing connection...");
-      await connection.release();
+    if (connection && typeof connection.release === 'function') {
+      console.log("Releasing connection...");
+      try {
+        await connection.release();
+      } catch (err) {
+        console.error("Error releasing connection:", err);
+      }
     }
 
     // 프로덕션 환경이 아닌 경우에만 프로세스 종료
@@ -72,8 +95,12 @@ const testConnection = async () => {
       process.exit(1);
     }
   } finally {
-    if (connection) {
-      await connection.release();
+    if (connection && typeof connection.release === 'function') {
+      try {
+        await connection.release();
+      } catch (err) {
+        console.error("Error releasing connection in finally block:", err);
+      }
     }
   }
 };
