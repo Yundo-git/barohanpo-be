@@ -1,7 +1,7 @@
 -- Create refresh_tokens table for JWT refresh token storage
 CREATE TABLE IF NOT EXISTS `refresh_tokens` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `user_id` bigint(20) NOT NULL,
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
   `token` varchar(255) NOT NULL COMMENT 'Hashed refresh token',
   `jti` varchar(36) NOT NULL COMMENT 'JWT ID for token invalidation',
   `expires_at` datetime NOT NULL,
@@ -13,7 +13,10 @@ CREATE TABLE IF NOT EXISTS `refresh_tokens` (
   KEY `user_id` (`user_id`),
   KEY `expires_at` (`expires_at`),
   KEY `revoked` (`revoked`),
-  CONSTRAINT `refresh_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+  CONSTRAINT `refresh_tokens_ibfk_1` 
+    FOREIGN KEY (`user_id`) 
+    REFERENCES `users` (`user_id`) 
+    ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Add index for faster lookups
@@ -31,7 +34,6 @@ END //
 DELIMITER ;
 
 -- Create an event to run the cleanup daily
-SET GLOBAL event_scheduler = ON;
-CREATE EVENT IF NOT EXISTS `daily_token_cleanup`
+CREATE EVENT IF NOT EXISTS `cleanup_expired_tokens_event`
 ON SCHEDULE EVERY 1 DAY
 DO CALL `cleanup_expired_tokens`();

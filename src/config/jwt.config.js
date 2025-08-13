@@ -1,14 +1,25 @@
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
+const logger = require('../utils/logger');
 
 dotenv.config();
 
-// Environment variables with fallbacks for development
-const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "your_access_token_secret_key";
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "your_refresh_token_secret_key";
-const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || "15m";
-const REFRESH_TOKEN_TTL = process.env.REFRESH_TOKEN_TTL || "7d";
+// Environment variables - validation happens in TokenService
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || '15m';
+const REFRESH_TOKEN_TTL = process.env.REFRESH_TOKEN_TTL || '7d';
 const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Validate required environment variables
+const requiredVars = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'];
+const missingVars = requiredVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  const errorMsg = `Missing required environment variables: ${missingVars.join(', ')}`;
+  logger.error(errorMsg);
+  throw new Error(errorMsg);
+}
 
 /**
  * Generate an access token with user payload
@@ -17,18 +28,20 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
  * @returns {string} JWT access token
  */
 const generateAccessToken = (payload, jti) => {
+  // Create a new payload object without jti if it exists
+  const { jti: _, ...payloadWithoutJti } = payload;
+  
   return jwt.sign(
     { 
-      ...payload, 
-      type: 'access',
-      jti: jti || undefined
+      ...payloadWithoutJti, 
+      type: 'access'
     },
     JWT_ACCESS_SECRET,
     {
       expiresIn: ACCESS_TOKEN_TTL,
       issuer: "barohanpo",
       subject: 'access',
-      jwtid: jti || undefined
+      jwtid: jti  // Set jti in the options, not in the payload
     }
   );
 };
@@ -44,18 +57,20 @@ const generateRefreshToken = (payload, jti) => {
     throw new Error('jti (JWT ID) is required for refresh tokens');
   }
   
+  // Create a new payload object without jti if it exists
+  const { jti: _, ...payloadWithoutJti } = payload;
+  
   return jwt.sign(
     { 
-      ...payload, 
-      type: 'refresh',
-      jti
+      ...payloadWithoutJti, 
+      type: 'refresh'
     },
     JWT_REFRESH_SECRET,
     {
       expiresIn: REFRESH_TOKEN_TTL,
       issuer: "barohanpo",
       subject: 'refresh',
-      jwtid: jti
+      jwtid: jti  // Set jti in the options, not in the payload
     }
   );
 };
