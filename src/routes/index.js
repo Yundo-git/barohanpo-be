@@ -11,5 +11,5 @@ router.use("/pharmacy", pharmacyRoutes); //약국 관련 라우터
 router.use("/pha_user", pha_userRoutes); //약사 관련 라우터
 router.use("/reservation", booksRoutes); //예약 관련 라우터
 router.use("/auth", authRoutes); //회원 관련 라우터
-
+//env에 있는 API_PREFIX를 사용하여 라우터를 정의필요
 module.exports = router;
