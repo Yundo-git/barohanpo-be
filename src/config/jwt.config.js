@@ -135,6 +135,10 @@ const generateTokenId = () => {
 };
 
 module.exports = { 
+  JWT_ACCESS_SECRET,
+  JWT_REFRESH_SECRET,
+  ACCESS_TOKEN_TTL,
+  REFRESH_TOKEN_TTL,
   generateAccessToken, 
   generateRefreshToken, 
   verifyToken, 

@@ -1,9 +1,23 @@
-const app = require("./app");
+// Load environment variables first
 const dotenv = require("dotenv");
-const slotManager = require("./utils/slotManager");
+const path = require('path');
 
-// 환경 변수 설정
-dotenv.config();
+// Load environment variables from .env file
+const envPath = path.resolve(__dirname, '..', '.env');
+dotenv.config({ path: envPath });
+
+// Validate required environment variables
+const requiredEnvVars = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_DATABASE'];
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+  console.error(`Missing required environment variables: ${missingVars.join(', ')}`);
+  console.error(`Please check your .env file at: ${envPath}`);
+  process.exit(1);
+}
+
+const app = require("./app");
+const slotManager = require("./utils/slotManager");
 
 const PORT = process.env.PORT || 5000;
 
