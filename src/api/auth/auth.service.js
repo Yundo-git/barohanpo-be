@@ -461,10 +461,31 @@ const getCurrentUser = async (userId) => {
   }
 };
 
+/**
+ * Invalidate a specific refresh token by its JTI
+ * @param {string} jti - The JWT ID of the token to invalidate
+ * @returns {Promise<boolean>} True if the token was successfully invalidated
+ * @throws {Error} If there's an error during token invalidation
+ */
+const invalidateRefreshToken = async (jti) => {
+try {
+  if (!jti) {
+    throw new Error('JTI is required');
+  }
+  
+  const result = await authModel.invalidateRefreshToken(jti);
+  return result;
+} catch (error) {
+  console.error('Error in authService.invalidateRefreshToken:', error);
+  throw error;
+}
+};
+
 module.exports = { 
   signup, 
   login, 
   refreshAccessToken, 
   logout, 
-  getCurrentUser
+  getCurrentUser,
+  invalidateRefreshToken 
 };

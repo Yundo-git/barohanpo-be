@@ -4,6 +4,15 @@ const { isAuthenticated } = require("../../middlewares/auth.middleware");
 
 const router = express.Router();
 
+// Public routes
+router.post("/signup", signup);
+router.post("/login", login);
+router.post("/refresh-token", refreshToken);
+router.post("/logout", logout); // No authentication required
+
+// Protected routes
+router.get("/me", isAuthenticated, getCurrentUser);
+
 /**
  * @swagger
  * tags:

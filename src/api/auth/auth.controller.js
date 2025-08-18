@@ -503,44 +503,40 @@ const logout = async (req, res) => {
       path: "/api/auth/refresh-token",
     });
 
-    // If we have a user in the request (from isAuthenticated middleware)
-    if (req.user?.id) {
-      // If we have a refresh token, try to decode it to get the JTI
-      if (refreshToken) {
-        try {
-          // Verify the token to get the JTI
-          const decoded = jwt.verify(
-            refreshToken,
-            process.env.JWT_REFRESH_SECRET,
-            { ignoreExpiration: true } // We still want to decode even if expired
-          );
+    // Invalidate the refresh token if it exists
+    if (refreshToken) {
+      try {
+        // Verify the token to get the JTI
+        const decoded = jwt.verify(
+          refreshToken,
+          process.env.JWT_REFRESH_SECRET,
+          { ignoreExpiration: true } // We still want to decode even if expired
+        );
 
-          // If we have a JTI, invalidate just this token
-          if (decoded?.jti) {
-            await authService.invalidateRefreshToken(decoded.jti);
-          } else {
-            // If we can't get the JTI, invalidate all user's tokens
-            await authService.logout(req.user.id);
-          }
-        } catch (error) {
-          // If there's an error decoding, just invalidate all tokens
+        // If we have a JTI, invalidate just this token
+        if (decoded?.jti) {
+          await authService.invalidateRefreshToken(decoded.jti);
+        } else if (req.user?.id) {
+          // If we can't get the JTI but have user ID, invalidate all user's tokens
           await authService.logout(req.user.id);
         }
-      } else {
-        // No refresh token, just invalidate all user's tokens
-        await authService.logout(req.user.id);
+      } catch (error) {
+        // Log the error but don't fail the logout
+        console.error('Error during token invalidation:', error.message);
       }
     }
 
+    // Always return success
     return res.status(200).json({
       success: true,
-      message: "Successfully logged out",
+      message: "Successfully logged out"
     });
+    
   } catch (error) {
-    console.error("Error in authController.logout:", error);
-    return res.status(500).json({
-      success: false,
-      message: "An error occurred during logout",
+    console.error('Unexpected error during logout:', error);
+    return res.status(200).json({
+      success: true,
+      message: "Successfully logged out"
     });
   }
 };

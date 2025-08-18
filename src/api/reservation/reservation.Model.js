@@ -29,7 +29,7 @@ const booksModel = {
          FROM reservation_slot 
          WHERE p_id = ? AND is_available = TRUE 
          AND slot_date >= CURDATE() 
-         ORDER BY slot_date`,
+         ORDER BY date`,
         [p_id]
       );
 
