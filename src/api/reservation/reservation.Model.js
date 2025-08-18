@@ -33,28 +33,39 @@ const booksModel = {
         [p_id]
       );
 
-      // 2. 각 날짜별로 예약 가능한 시간대가 있는지 확인합니다.
+      // 2. 각 날짜별로 예약 가능한 시간대를 가져옵니다.
       const availableDates = [];
       for (const row of rows) {
         const date = row.date;
         const [timeSlots] = await db.query(
-          `SELECT COUNT(*) as count 
+          `SELECT 
+             p_id,
+             slot_date,
+             slot_time
            FROM reservation_slot 
-           WHERE p_id = ? AND DATE(slot_date) = ? AND is_available = TRUE`,
+           WHERE p_id = ? 
+             AND DATE(slot_date) = ? 
+             AND is_available = TRUE
+           ORDER BY slot_date`,
           [p_id, date]
         );
 
-        if (timeSlots[0].count > 0) {
-          availableDates.push({
-            date: date,
-            is_available: true
-          });
-        }
-      }
+        // 각 시간대별로 객체를 생성하여 배열에 추가
+        timeSlots.forEach((slot) => {
+          const slotDate = new Date(slot.slot_date);
 
+          availableDates.push({
+            p_id: slot.p_id,
+            date: date,
+            is_available: true,
+            time: slot.slot_time,
+          });
+        });
+      }
+      console.log("availableDates", availableDates);
       return availableDates;
     } catch (error) {
-      console.error('Error in findAvailableDates:', error);
+      console.error("Error in findAvailableDates:", error);
       throw error;
     }
   },
@@ -64,7 +75,7 @@ const booksModel = {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      
+
       // Check if the slot is still available
       const [slots] = await conn.query(
         `SELECT id FROM reservation_slot 
@@ -74,7 +85,7 @@ const booksModel = {
       );
 
       if (slots.length === 0) {
-        throw new Error('The selected time slot is no longer available');
+        throw new Error("The selected time slot is no longer available");
       }
 
       // Insert the reservation
@@ -95,7 +106,7 @@ const booksModel = {
       await conn.commit();
       return result;
     } catch (error) {
-      console.error('Error in insertReservation:', error);
+      console.error("Error in insertReservation:", error);
       if (conn) await conn.rollback();
       throw error;
     } finally {
