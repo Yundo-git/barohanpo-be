@@ -7,7 +7,7 @@ const booksModel = {
       const [rows] = await db.query(
         `SELECT
           DATE(slot_date) AS date,
-          SUM(CASE WHEN is_available = TRUE THEN 1 ELSE 0 END) > 0 AS is_available
+          SUM(CASE WHEN is_available = 1 THEN 1 ELSE 0 END) > 0 AS is_available
         FROM reservation_slot
         WHERE p_id = ? AND slot_date BETWEEN ? AND ?
         GROUP BY slot_date
@@ -27,7 +27,7 @@ const booksModel = {
       const [rows] = await db.query(
         `SELECT DISTINCT DATE(slot_date) as date 
          FROM reservation_slot 
-         WHERE p_id = ? AND is_available = TRUE 
+         WHERE p_id = ? AND is_available = 1 
          AND slot_date >= CURDATE() 
          ORDER BY date`,
         [p_id]
@@ -44,8 +44,8 @@ const booksModel = {
              slot_time
            FROM reservation_slot 
            WHERE p_id = ? 
-             AND DATE(slot_date) = ? 
-             AND is_available = TRUE
+             AND slot_date = ? 
+             AND is_available = 1
            ORDER BY slot_date`,
           [p_id, date]
         );
@@ -57,7 +57,7 @@ const booksModel = {
           availableDates.push({
             p_id: slot.p_id,
             date: date,
-            is_available: true,
+            is_available: 1,
             time: slot.slot_time,
           });
         });
@@ -70,47 +70,63 @@ const booksModel = {
     }
   },
 
-  // 예약하기
+  // 예약하기(권장): 슬롯 UPDATE 없이, books에 INSERT만 시도
   insertReservation: async (user_id, p_id, date, time, memo) => {
     const conn = await db.getConnection();
     try {
+      await conn.query(
+        "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED"
+      );
       await conn.beginTransaction();
 
-      // Check if the slot is still available
-      const [slots] = await conn.query(
-        `SELECT id FROM reservation_slot 
-         WHERE p_id = ? AND DATE(slot_date) = ? AND slot_time = ? AND is_available = TRUE
-         FOR UPDATE`,
+      // ① 슬롯 존재 확인 (읽기만 — 락 없음)
+      const [slotRows] = await conn.execute(
+        `
+      SELECT 1
+      FROM reservation_slot
+      WHERE p_id = ? AND slot_date = ? AND slot_time = ?
+      LIMIT 1
+      `,
         [p_id, date, time]
       );
-
-      if (slots.length === 0) {
-        throw new Error("The selected time slot is no longer available");
+      if (slotRows.length === 0) {
+        await conn.rollback();
+        throw new Error("해당 시간대 슬롯이 없습니다.");
       }
 
-      // Insert the reservation
-      const [result] = await conn.query(
-        `INSERT INTO reservation (user_id, p_id, date, time, memo) 
-         VALUES (?, ?, ?, ?, ?)`,
-        [user_id, p_id, date, time, memo || null]
-      );
-
-      // Mark the slot as not available
-      await conn.query(
-        `UPDATE reservation_slot 
-         SET is_available = FALSE 
-         WHERE p_id = ? AND DATE(slot_date) = ? AND slot_time = ?`,
-        [p_id, date, time]
-      );
-
-      await conn.commit();
-      return result;
-    } catch (error) {
-      console.error("Error in insertReservation:", error);
-      if (conn) await conn.rollback();
-      throw error;
+      // 예약 시도: UNIQUE로 중복 차단 (동시에 두 번 들어오면 한쪽은 ER_DUP_ENTRY)
+      try {
+        const [result] = await conn.execute(
+          `
+        INSERT INTO books (user_id, p_id, book_date, book_time, memo)
+        VALUES (?, ?, ?, ?, ?)
+        `,
+          [user_id, p_id, date, time, memo ?? null]
+        );
+        await conn.commit();
+        return result;
+      } catch (e) {
+        if (e && e.code === "ER_DUP_ENTRY") {
+          await conn.rollback();
+          throw new Error("이미 예약된 시간대입니다.");
+        }
+        await conn.rollback();
+        throw e;
+      }
     } finally {
-      if (conn) conn.release();
+      conn.release();
+    }
+  },
+
+  findBooks: async (user_id) => {
+    try {
+      const [rows] = await db.query(`SELECT * FROM books WHERE user_id = ?`, [
+        user_id,
+      ]);
+      return rows;
+    } catch (error) {
+      console.error("Error in findBooks:", error);
+      throw error;
     }
   },
 };

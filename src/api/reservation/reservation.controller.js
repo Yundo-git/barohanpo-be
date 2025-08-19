@@ -1,6 +1,11 @@
 // controllers/reservation.controller.js
 const debug = require("debug");
-const { fetchSlotsInRange, fetchAvailableDates, reservationService } = require("./reservation.service");
+const {
+  fetchSlotsInRange,
+  fetchAvailableDates,
+  reservationService,
+  fetchBooks,
+} = require("./reservation.service");
 
 const log = debug("app:reservation");
 
@@ -8,32 +13,39 @@ const getSlotsByPharmacy = async (req, res) => {
   const { p_id } = req.params;
   const { from, to } = req.query;
 
-  console.log(`[API] getSlotsByPharmacy - p_id: ${p_id}, from: ${from}, to: ${to}`);
+  console.log(
+    `[API] getSlotsByPharmacy - p_id: ${p_id}, from: ${from}, to: ${to}`
+  );
 
   if (!from || !to) {
-    console.error('[ERROR] Missing required parameters - from or to is missing');
-    return res.status(400).json({ 
-      success: false, 
+    console.error(
+      "[ERROR] Missing required parameters - from or to is missing"
+    );
+    return res.status(400).json({
+      success: false,
       error: "from, to 값이 필요합니다.",
-      received: { p_id, from, to }
+      received: { p_id, from, to },
     });
   }
 
   try {
-    console.log(`[API] Fetching slots for pharmacy ${p_id} from ${from} to ${to}`);
+    console.log(
+      `[API] Fetching slots for pharmacy ${p_id} from ${from} to ${to}`
+    );
     const data = await fetchSlotsInRange(p_id, from, to);
     console.log(`[API] Found ${data.length} days of slot data`);
     res.json(data);
   } catch (error) {
-    console.error('[ERROR] getSlotsByPharmacy failed:', {
+    console.error("[ERROR] getSlotsByPharmacy failed:", {
       error: error.message,
       stack: error.stack,
-      params: { p_id, from, to }
+      params: { p_id, from, to },
     });
-    res.status(500).json({ 
-      success: false, 
-      error: '서버 오류가 발생했습니다.',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    res.status(500).json({
+      success: false,
+      error: "서버 오류가 발생했습니다.",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 };
@@ -51,12 +63,16 @@ const getAvailableDates = async (req, res) => {
 };
 
 const createReservation = async (req, res) => {
-  const { user_id, pharmacy_id, date, time, memo } = req.body;
-
+  const { user_id, p_id, date, time, memo } = req.body;
+  console.log("in controller user_id", user_id);
+  console.log("in controller p_id", p_id);
+  console.log("in controller date", date);
+  console.log("in controller time", time);
+  console.log("in controller memo", memo);
   try {
     const result = await reservationService.createReservation(
       user_id,
-      pharmacy_id,
+      p_id,
       date,
       time,
       memo
@@ -67,9 +83,21 @@ const createReservation = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+const getBook = async (req, res) => {
+  const { user_id } = req.params;
+  try {
+    const data = await fetchBooks(user_id);
+    res.json(data);
+    log("books", data);
+  } catch (error) {
+    log("Error in getBooks:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
 
 module.exports = {
   getSlotsByPharmacy,
   getAvailableDates,
-  createReservation
+  createReservation,
+  getBook,
 };
