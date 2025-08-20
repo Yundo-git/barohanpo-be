@@ -1,14 +1,14 @@
 const { authModel } = require("./auth.Model");
 const bcrypt = require("bcryptjs");
-const jwt = require('jsonwebtoken');
+const jwt = require("jsonwebtoken");
 const TokenService = require("../../services/TokenService");
-const { 
-  JWT_ACCESS_SECRET, 
+const {
+  JWT_ACCESS_SECRET,
   JWT_REFRESH_SECRET,
   ACCESS_TOKEN_TTL,
-  REFRESH_TOKEN_TTL
+  REFRESH_TOKEN_TTL,
 } = require("../../config/jwt.config");
-const logger = require('../../utils/logger');
+const logger = require("../../utils/logger");
 
 /**
  * @typedef {import('./auth.types').User} User
@@ -47,12 +47,15 @@ const signup = async (email, password, name, phone) => {
     return user;
   } catch (error) {
     console.error("Error in authService.signup:", error);
-    
+
     // Handle duplicate email error
-    if (error.message.includes("ER_DUP_ENTRY") || error.message.includes("duplicate")) {
+    if (
+      error.message.includes("ER_DUP_ENTRY") ||
+      error.message.includes("duplicate")
+    ) {
       throw new Error("Email already in use");
     }
-    
+
     throw error;
   }
 };
@@ -66,113 +69,115 @@ const signup = async (email, password, name, phone) => {
  */
 const login = async (email, password) => {
   const correlationId = Math.random().toString(36).substring(2, 10);
-  logger.debug(`[${correlationId}] Login attempt for email: ${email}`, { 
+  logger.debug(`[${correlationId}] Login attempt for email: ${email}`, {
     hasEmail: !!email,
-    hasPassword: !!password 
+    hasPassword: !!password,
   });
 
   try {
     // 1. Input validation
-    if (typeof email !== 'string' || email.trim() === '') {
-      throw new Error('Email is required');
+    if (typeof email !== "string" || email.trim() === "") {
+      throw new Error("Email is required");
     }
-    if (typeof password !== 'string' || password.trim() === '') {
-      throw new Error('Password is required');
+    if (typeof password !== "string" || password.trim() === "") {
+      throw new Error("Password is required");
     }
 
     // 2. Find user by email
     const user = await authModel.findByEmail(email);
     if (!user) {
       logger.warn(`[${correlationId}] Login failed: User not found`, { email });
-      throw new Error('Invalid email or password');
+      throw new Error("Invalid email or password");
     }
 
     // 3. Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      logger.warn(`[${correlationId}] Login failed: Invalid password`, { userId: user.id });
-      throw new Error('Invalid email or password');
+      logger.warn(`[${correlationId}] Login failed: Invalid password`, {
+        userId: user.id,
+      });
+      throw new Error("Invalid email or password");
     }
 
     // 4. Prepare user payload for tokens
     const userPayload = {
-      id: user.id,
+      user_id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role
+      role: user.role,
     };
 
     // 5. Generate token ID for refresh token rotation
     const jti = TokenService.generateUniqueTokenId();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
-    logger.debug(`[${correlationId}] Generating tokens`, { 
+    logger.debug(`[${correlationId}] Generating tokens`, {
       userId: user.id,
       jtiLength: jti.length,
-      expiresAt: expiresAt.toISOString()
+      expiresAt: expiresAt.toISOString(),
     });
-    
+
     // 6. Generate tokens
     const accessToken = jwt.sign(
-      { ...userPayload, type: 'access' },
+      { ...userPayload, type: "access" },
       JWT_ACCESS_SECRET,
-      { 
+      {
         expiresIn: ACCESS_TOKEN_TTL,
         issuer: "barohanpo",
-        subject: 'access',
-        jwtid: jti
+        subject: "access",
+        jwtid: jti,
       }
     );
 
     const refreshToken = jwt.sign(
-      { ...userPayload, type: 'refresh' },
+      { ...userPayload, type: "refresh" },
       JWT_REFRESH_SECRET,
-      { 
+      {
         expiresIn: REFRESH_TOKEN_TTL,
         issuer: "barohanpo",
-        subject: 'refresh',
-        jwtid: jti
+        subject: "refresh",
+        jwtid: jti,
       }
     );
-    
+
     // 7. Store refresh token in database
     await TokenService.storeRefreshToken({
       userId: user.id,
       refreshToken,
       jti,
-      expiresAt
+      expiresAt,
     });
 
     // 8. Return user data and tokens
     const response = {
       user: {
-        id: user.id,
+        user_id: user.id,
         email: user.email,
         name: user.name,
         role: user.role,
-        phone: user.phone
+        phone: user.phone,
       },
       tokens: {
         accessToken,
-        refreshToken
-      }
+        refreshToken,
+      },
     };
 
-    logger.debug(`[${correlationId}] Login successful`, { 
+    logger.debug(`[${correlationId}] Login successful`, {
       userId: user.id,
       accessTokenLength: accessToken ? accessToken.length : 0,
-      refreshTokenLength: refreshToken ? refreshToken.length : 0
+      refreshTokenLength: refreshToken ? refreshToken.length : 0,
     });
 
     return response;
   } catch (error) {
     logger.error(`[${correlationId}] Login failed: ${error.message}`, {
       error: error.stack,
-      email: email ? 'provided' : 'missing'
+      email: email ? "provided" : "missing",
     });
-    
+
     // Re-throw with sanitized error message for security
-    const safeError = new Error('Authentication failed');
+    const safeError = new Error("Authentication failed");
     safeError.status = error.status || 500;
     throw safeError;
   }
@@ -189,104 +194,104 @@ const refreshAccessToken = async (refreshToken) => {
   const correlationId = Math.random().toString(36).substring(2, 10);
   logger.debug(`[${correlationId}] Refresh token attempt`, {
     hasToken: !!refreshToken,
-    tokenLength: refreshToken ? refreshToken.length : 0
+    tokenLength: refreshToken ? refreshToken.length : 0,
   });
 
   try {
     // 1. Input validation
-    if (typeof refreshToken !== 'string' || refreshToken.trim() === '') {
-      throw new Error('Refresh token is required');
+    if (typeof refreshToken !== "string" || refreshToken.trim() === "") {
+      throw new Error("Refresh token is required");
     }
 
     // 2. Verify the refresh token
     let decoded;
     try {
       decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET, {
-        issuer: 'barohanpo',
-        subject: 'refresh'
+        issuer: "barohanpo",
+        subject: "refresh",
       });
-      
-      if (decoded.type !== 'refresh') {
-        throw new Error('Invalid token type');
+
+      if (decoded.type !== "refresh") {
+        throw new Error("Invalid token type");
       }
     } catch (jwtError) {
       logger.error(`[${correlationId}] JWT verification failed`, {
         error: jwtError.message,
-        name: jwtError.name
+        name: jwtError.name,
       });
-      throw new Error('Invalid or expired refresh token');
+      throw new Error("Invalid or expired refresh token");
     }
 
     // 3. Check if the token is in the database and not revoked
     const [tokens] = await db.query(
-      'SELECT * FROM refresh_tokens WHERE jti = ? AND revoked = 0 AND expires_at > NOW()',
+      "SELECT * FROM refresh_tokens WHERE jti = ? AND revoked = 0 AND expires_at > NOW()",
       [decoded.jti]
     );
 
     if (tokens.length === 0) {
       logger.warn(`[${correlationId}] Refresh token not found or revoked`, {
         jti: decoded.jti,
-        userId: decoded.id
+        userId: decoded.id,
       });
-      throw new Error('Invalid or expired refresh token');
+      throw new Error("Invalid or expired refresh token");
     }
 
     const tokenData = tokens[0];
-    
+
     // 4. Verify the token hash matches
     const tokenHash = TokenService.hashToken(refreshToken);
     if (tokenHash !== tokenData.token) {
       // Token doesn't match - possible token reuse! Revoke all user's tokens
       logger.warn(`[${correlationId}] Token reuse detected`, {
         userId: decoded.id,
-        jti: decoded.jti
+        jti: decoded.jti,
       });
-      
+
       await db.query(
-        'UPDATE refresh_tokens SET revoked = 1, revoked_at = NOW() WHERE user_id = ?',
+        "UPDATE refresh_tokens SET revoked = 1, revoked_at = NOW() WHERE user_id = ?",
         [decoded.id]
       );
-      
-      throw new Error('Security alert: Invalid refresh token');
+
+      throw new Error("Security alert: Invalid refresh token");
     }
 
     // 5. Generate new tokens with a new JTI for rotation
     const newJti = TokenService.generateUniqueTokenId();
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    
+
     const userPayload = {
       id: decoded.id,
       email: decoded.email,
       name: decoded.name,
-      role: decoded.role
+      role: decoded.role,
     };
 
     logger.debug(`[${correlationId}] Generating new tokens`, {
       userId: decoded.id,
       newJtiLength: newJti.length,
-      expiresAt: expiresAt.toISOString()
+      expiresAt: expiresAt.toISOString(),
     });
 
     // 6. Generate new tokens
     const newAccessToken = jwt.sign(
-      { ...userPayload, type: 'access' },
+      { ...userPayload, type: "access" },
       JWT_ACCESS_SECRET,
-      { 
+      {
         expiresIn: ACCESS_TOKEN_TTL,
-        issuer: 'barohanpo',
-        subject: 'access',
-        jwtid: newJti
+        issuer: "barohanpo",
+        subject: "access",
+        jwtid: newJti,
       }
     );
 
     const newRefreshToken = jwt.sign(
-      { ...userPayload, type: 'refresh' },
+      { ...userPayload, type: "refresh" },
       JWT_REFRESH_SECRET,
-      { 
+      {
         expiresIn: REFRESH_TOKEN_TTL,
-        issuer: 'barohanpo',
-        subject: 'refresh',
-        jwtid: newJti
+        issuer: "barohanpo",
+        subject: "refresh",
+        jwtid: newJti,
       }
     );
 
@@ -294,21 +299,21 @@ const refreshAccessToken = async (refreshToken) => {
     const conn = await db.getConnection();
     try {
       await conn.beginTransaction();
-      
+
       // Store new token
       await TokenService.storeRefreshToken({
         userId: decoded.id,
         refreshToken: newRefreshToken,
         jti: newJti,
-        expiresAt
+        expiresAt,
       });
 
       // Revoke the old token
       await conn.query(
-        'UPDATE refresh_tokens SET revoked = 1, revoked_at = NOW() WHERE jti = ?',
+        "UPDATE refresh_tokens SET revoked = 1, revoked_at = NOW() WHERE jti = ?",
         [decoded.jti]
       );
-      
+
       await conn.commit();
     } catch (error) {
       await conn.rollback();
@@ -320,20 +325,20 @@ const refreshAccessToken = async (refreshToken) => {
     logger.debug(`[${correlationId}] Token refresh successful`, {
       userId: decoded.id,
       oldJti: decoded.jti,
-      newJti
+      newJti,
     });
 
     return {
       accessToken: newAccessToken,
-      refreshToken: newRefreshToken
+      refreshToken: newRefreshToken,
     };
   } catch (error) {
     logger.error(`[${correlationId}] Token refresh failed: ${error.message}`, {
       error: error.stack,
-      hasJti: !!(error.jti || (error.decoded && error.decoded.jti))
+      hasJti: !!(error.jti || (error.decoded && error.decoded.jti)),
     });
-    
-    const safeError = new Error('Failed to refresh token');
+
+    const safeError = new Error("Failed to refresh token");
     safeError.status = error.status || 401;
     throw safeError;
   }
@@ -348,22 +353,22 @@ const refreshAccessToken = async (refreshToken) => {
  */
 const logout = async (userId, jti) => {
   const correlationId = Math.random().toString(36).substring(2, 10);
-  
+
   logger.debug(`[${correlationId}] Logout requested`, {
     userId,
     hasJti: !!jti,
-    jtiLength: jti ? jti.length : 0
+    jtiLength: jti ? jti.length : 0,
   });
 
   // Input validation
   if (!Number.isInteger(userId) || userId <= 0) {
-    const error = new Error('Invalid user ID');
+    const error = new Error("Invalid user ID");
     error.status = 400;
     throw error;
   }
 
-  if (jti && (typeof jti !== 'string' || jti.trim() === '')) {
-    const error = new Error('Invalid JTI');
+  if (jti && (typeof jti !== "string" || jti.trim() === "")) {
+    const error = new Error("Invalid JTI");
     error.status = 400;
     throw error;
   }
@@ -372,37 +377,45 @@ const logout = async (userId, jti) => {
     if (jti) {
       // Invalidate specific token
       logger.debug(`[${correlationId}] Invalidating specific token`, { jti });
-      
+
       const [result] = await db.query(
-        'UPDATE refresh_tokens SET revoked = 1, revoked_at = NOW() WHERE jti = ? AND user_id = ?',
+        "UPDATE refresh_tokens SET revoked = 1, revoked_at = NOW() WHERE jti = ? AND user_id = ?",
         [jti, userId]
       );
-      
+
       if (result.affectedRows === 0) {
-        logger.warn(`[${correlationId}] Token not found or already revoked`, { jti, userId });
+        logger.warn(`[${correlationId}] Token not found or already revoked`, {
+          jti,
+          userId,
+        });
         // Don't throw an error - just log and continue
       }
     } else {
       // Invalidate all user's tokens
-      logger.debug(`[${correlationId}] Invalidating all tokens for user`, { userId });
-      
+      logger.debug(`[${correlationId}] Invalidating all tokens for user`, {
+        userId,
+      });
+
       const [result] = await db.query(
-        'UPDATE refresh_tokens SET revoked = 1, revoked_at = NOW() WHERE user_id = ?',
+        "UPDATE refresh_tokens SET revoked = 1, revoked_at = NOW() WHERE user_id = ?",
         [userId]
       );
-      
-      logger.debug(`[${correlationId}] Invalidated ${result.affectedRows} tokens`, { userId });
+
+      logger.debug(
+        `[${correlationId}] Invalidated ${result.affectedRows} tokens`,
+        { userId }
+      );
     }
-    
+
     return true;
   } catch (error) {
     logger.error(`[${correlationId}] Logout failed: ${error.message}`, {
       error: error.stack,
       userId,
-      hasJti: !!jti
+      hasJti: !!jti,
     });
-    
-    const safeError = new Error('Failed to complete logout');
+
+    const safeError = new Error("Failed to complete logout");
     safeError.status = error.status || 500;
     throw safeError;
   }
@@ -416,46 +429,51 @@ const logout = async (userId, jti) => {
  */
 const getCurrentUser = async (userId) => {
   const correlationId = Math.random().toString(36).substring(2, 10);
-  
+
   // Input validation
   if (!Number.isInteger(userId) || userId <= 0) {
-    const error = new Error('Invalid user ID');
+    const error = new Error("Invalid user ID");
     error.status = 400;
     throw error;
   }
 
   logger.debug(`[${correlationId}] Fetching user profile`, { userId });
-  
+
   try {
     // Get user from database
     const [users] = await db.query(
-      'SELECT id, email, name, phone, role, created_at FROM users WHERE id = ?',
+      "SELECT id, email, name, phone, role, created_at FROM users WHERE id = ?",
       [userId]
     );
-    
+
     if (users.length === 0) {
       logger.warn(`[${correlationId}] User not found`, { userId });
-      const error = new Error('User not found');
+      const error = new Error("User not found");
       error.status = 404;
       throw error;
     }
 
     const user = users[0];
-    logger.debug(`[${correlationId}] User profile retrieved`, { 
+    logger.debug(`[${correlationId}] User profile retrieved`, {
       userId: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
     });
 
     return user;
   } catch (error) {
-    logger.error(`[${correlationId}] Failed to fetch user profile: ${error.message}`, {
-      error: error.stack,
-      userId
-    });
-    
+    logger.error(
+      `[${correlationId}] Failed to fetch user profile: ${error.message}`,
+      {
+        error: error.stack,
+        userId,
+      }
+    );
+
     // Don't expose internal errors to the client
-    const safeError = error.status ? error : new Error('Failed to fetch user profile');
+    const safeError = error.status
+      ? error
+      : new Error("Failed to fetch user profile");
     safeError.status = error.status || 500;
     throw safeError;
   }
@@ -468,24 +486,24 @@ const getCurrentUser = async (userId) => {
  * @throws {Error} If there's an error during token invalidation
  */
 const invalidateRefreshToken = async (jti) => {
-try {
-  if (!jti) {
-    throw new Error('JTI is required');
+  try {
+    if (!jti) {
+      throw new Error("JTI is required");
+    }
+
+    const result = await authModel.invalidateRefreshToken(jti);
+    return result;
+  } catch (error) {
+    console.error("Error in authService.invalidateRefreshToken:", error);
+    throw error;
   }
-  
-  const result = await authModel.invalidateRefreshToken(jti);
-  return result;
-} catch (error) {
-  console.error('Error in authService.invalidateRefreshToken:', error);
-  throw error;
-}
 };
 
-module.exports = { 
-  signup, 
-  login, 
-  refreshAccessToken, 
-  logout, 
+module.exports = {
+  signup,
+  login,
+  refreshAccessToken,
+  logout,
   getCurrentUser,
-  invalidateRefreshToken 
+  invalidateRefreshToken,
 };

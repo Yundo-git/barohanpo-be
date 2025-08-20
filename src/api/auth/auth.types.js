@@ -1,6 +1,6 @@
 /**
  * @typedef {Object} User
- * @property {number} id - User ID
+ * @property {number} user_id - User ID
  * @property {string} email - User's email address
  * @property {string} name - User's full name
  * @property {string} phone - User's phone number
@@ -11,7 +11,7 @@
 
 /**
  * @typedef {Object} TokenPayload
- * @property {number} id - User ID
+ * @property {number} user_id - User ID
  * @property {string} email - User's email
  * @property {string} name - User's name
  * @property {string} [role] - User's role

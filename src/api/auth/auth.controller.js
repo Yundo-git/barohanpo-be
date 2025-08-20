@@ -430,7 +430,7 @@ const refreshToken = async (req, res) => {
 const getCurrentUser = async (req, res) => {
   try {
     // User ID is attached to req.user by the isAuthenticated middleware
-    const userId = req.user?.id;
+    const userId = req.user?.user_id;
 
     if (!userId) {
       return res.status(401).json({
@@ -516,27 +516,26 @@ const logout = async (req, res) => {
         // If we have a JTI, invalidate just this token
         if (decoded?.jti) {
           await authService.invalidateRefreshToken(decoded.jti);
-        } else if (req.user?.id) {
+        } else if (req.user?.user_id) {
           // If we can't get the JTI but have user ID, invalidate all user's tokens
-          await authService.logout(req.user.id);
+          await authService.logout(req.user.user_id);
         }
       } catch (error) {
         // Log the error but don't fail the logout
-        console.error('Error during token invalidation:', error.message);
+        console.error("Error during token invalidation:", error.message);
       }
     }
 
     // Always return success
     return res.status(200).json({
       success: true,
-      message: "Successfully logged out"
+      message: "Successfully logged out",
     });
-    
   } catch (error) {
-    console.error('Unexpected error during logout:', error);
+    console.error("Unexpected error during logout:", error);
     return res.status(200).json({
       success: true,
-      message: "Successfully logged out"
+      message: "Successfully logged out",
     });
   }
 };
