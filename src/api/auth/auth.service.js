@@ -23,11 +23,12 @@ const logger = require("../../utils/logger");
  * @param {string} email - User email
  * @param {string} password - Password (min 8 chars)
  * @param {string} name - User's name
+ * @param {string} nickname - User's nickname
  * @param {string} phone - Phone number (without hyphens)
  * @returns {Promise<User>} Created user info without sensitive data
  * @throws {Error} Error during signup process
  */
-const signup = async (email, password, name, phone) => {
+const signup = async (email, password, name, nickname, phone) => {
   try {
     // Input validation
     if (!email || !password || !name || !phone) {
@@ -43,7 +44,13 @@ const signup = async (email, password, name, phone) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create user with hashed password
-    const user = await authModel.signup(email, hashedPassword, name, phone);
+    const user = await authModel.signup(
+      email,
+      hashedPassword,
+      name,
+      nickname,
+      phone
+    );
     return user;
   } catch (error) {
     console.error("Error in authService.signup:", error);
@@ -105,6 +112,8 @@ const login = async (email, password) => {
       email: user.email,
       name: user.name,
       role: user.role,
+      nickname: user.nickname,
+      phone: user.phone,
     };
 
     // 5. Generate token ID for refresh token rotation
@@ -155,6 +164,7 @@ const login = async (email, password) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        nickname: user.nickname,
         phone: user.phone,
       },
       tokens: {

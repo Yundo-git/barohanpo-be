@@ -94,7 +94,7 @@ const jwt = require("jsonwebtoken");
  */
 const signup = async (req, res) => {
   try {
-    const { email, password, name, phone } = req.body;
+    const { email, password, name, nickname, phone } = req.body;
 
     // Input validation
     if (!email || !password || !name || !phone) {
@@ -105,6 +105,7 @@ const signup = async (req, res) => {
       email,
       password,
       name,
+      nickname,
       phone
     );
 
