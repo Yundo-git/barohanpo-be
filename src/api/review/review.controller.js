@@ -24,7 +24,7 @@ const getReviewById = async (req, res) => {
 };
 
 //리뷰 생성
-const createReview = async (req, res) => {
+const createReviewController = async (req, res) => {
     const { user_id, p_id, review, rating } = req.body;
     try {
         const result = await createReview(user_id, p_id, review, rating);
@@ -36,7 +36,7 @@ const createReview = async (req, res) => {
 };
 
 //리뷰 수정
-const updateReview = async (req, res) => {
+const updateReviewController = async (req, res) => {
     const { id } = req.params;
     const { review, rating } = req.body;
     try {
@@ -49,7 +49,7 @@ const updateReview = async (req, res) => {
 };
 
 //리뷰 삭제
-const deleteReview = async (req, res) => {
+const deleteReviewController = async (req, res) => {
     const { id } = req.params;
     try {
         const result = await deleteReview(id);
@@ -63,8 +63,8 @@ const deleteReview = async (req, res) => {
 module.exports = {
     getAllReviews,
     getReviewById,
-    createReview,
-    updateReview,
-    deleteReview
+    createReviewController,
+    updateReviewController,
+    deleteReviewController
   };
   
