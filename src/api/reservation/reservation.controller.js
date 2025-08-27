@@ -5,6 +5,7 @@ const {
   fetchAvailableDates,
   reservationService,
   fetchBooks,
+  fetchcancelList
 } = require("./reservation.service");
 
 const log = debug("app:reservation");
@@ -64,11 +65,6 @@ const getAvailableDates = async (req, res) => {
 
 const createReservation = async (req, res) => {
   const { user_id, p_id, date, time, memo } = req.body;
-  console.log("in controller user_id", user_id);
-  console.log("in controller p_id", p_id);
-  console.log("in controller date", date);
-  console.log("in controller time", time);
-  console.log("in controller memo", memo);
   try {
     const result = await reservationService.createReservation(
       user_id,
@@ -84,7 +80,9 @@ const createReservation = async (req, res) => {
   }
 };
 const getBook = async (req, res) => {
+
   const { user_id } = req.params;
+  console.log("userid in con >>>>",user_id)
   try {
     const data = await fetchBooks(user_id);
     res.json(data);
@@ -95,9 +93,51 @@ const getBook = async (req, res) => {
   }
 };
 
+const cancelBook = async (req, res) => {
+  const { user_id, book_id } = req.body;
+  console.log("userid in con >>>>", user_id);
+  console.log("bookid in con >>>>", book_id);
+  try {
+    const data = await fetchcancelList(user_id, book_id);
+    res.json({
+      success: true,
+      message: '예약이 취소되었습니다.',
+      data
+    });
+  } catch (error) {
+    log("Error in cancelBook:", error);
+    res.status(200).json({
+      success: false,
+      message: error.message || '예약 취소 중 오류가 발생했습니다.'
+    });
+  }
+};
+
+const getcancelList = async (req, res) => {
+  const { user_id } = req.params;
+  try {
+    const data = await fetchcancelList(user_id);
+    res.json({
+      success: true,
+      data: Array.isArray(data) ? data : [],
+      count: Array.isArray(data) ? data.length : 0
+    });
+    log("cancellation list", data);
+  } catch (error) {
+    log("Error in getcancelList:", error);
+    res.status(200).json({
+      success: true,
+      data: [],
+      count: 0
+    });
+  }
+};
+
 module.exports = {
   getSlotsByPharmacy,
   getAvailableDates,
   createReservation,
   getBook,
+  cancelBook,
+  getcancelList,
 };

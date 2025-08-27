@@ -82,17 +82,42 @@ const reservationService = {
 const fetchBooks = async (user_id) => {
   try {
     const rows = await booksModel.findBooks(user_id);
-    console.log("in service user_id", user_id);
-    return rows;
+    return Array.isArray(rows) ? rows : [];
   } catch (error) {
     console.error("Error in fetchBooks:", error);
-    throw error;
+    return [];
   }
 };
+
+const fetchCancelBooks = async (user_id, book_id) => {
+  console.log("in service user_id", user_id);
+  console.log("in service book_id", book_id);
+  try {
+    const rows = await booksModel.postCancelBooks(user_id, book_id);
+    console.log("in service user_id", user_id);
+    console.log("in service book_id", book_id);
+    return rows;
+  } catch (error) {
+    console.error("Error in fetchCancelBooks:", error);
+    throw error;
+  }
+}
+
+const fetchcancelList = async (user_id) => {
+  try {
+    const rows = await booksModel.findcancelBooks(user_id);
+    return Array.isArray(rows) ? rows : [];
+  } catch (error) {
+    console.error("Error in fetchcancelList:", error);
+    return [];
+  }
+}
 
 module.exports = {
   fetchSlotsInRange,
   fetchAvailableDates,
   reservationService,
   fetchBooks,
+  fetchCancelBooks, // Fixed typo in function name
+  fetchcancelList
 };

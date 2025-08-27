@@ -119,14 +119,54 @@ const booksModel = {
   },
 
   findBooks: async (user_id) => {
+    console.log("in model user_id", user_id);
     try {
-      const [rows] = await db.query(`SELECT * FROM books WHERE user_id = ?`, [
+      const [rows] = await db.query(`SELECT * FROM books WHERE user_id = ? AND status= 'pending'`, [
         user_id,
       ]);
       return rows;
     } catch (error) {
       console.error("Error in findBooks:", error);
       throw error;
+    }
+  },
+  postCancelBooks: async (user_id, book_id) => {
+    console.log("in model user_id", user_id);
+    console.log("in model book_id", book_id);
+    try {
+      const [result] = await db.query(
+        `UPDATE books SET status = 'canceled' 
+         WHERE user_id = ? AND book_id = ? AND status = 'pending'`,
+        [user_id, book_id]
+      );
+      
+      // Return success status and affected rows info
+      return {
+        success: true,
+        affectedRows: result.affectedRows || 0
+      };
+    } catch (error) {
+      console.error("Error in postCancelBooks:", error);
+      // Return error information instead of throwing
+      return {
+        success: false,
+        error: error.message,
+        affectedRows: 0
+      };
+    }
+  },
+
+  findcancelBooks: async (user_id) => {
+    try {
+      const [rows] = await db.query(
+        `SELECT * FROM books WHERE user_id = ? AND status = 'canceled'`,
+        [user_id]
+      );
+      return rows;
+    } catch (error) {
+      console.error("Error in findcancelBooks:", error);
+      // Return empty array instead of throwing error
+      return [];
     }
   },
 };
