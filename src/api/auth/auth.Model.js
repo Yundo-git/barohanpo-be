@@ -195,6 +195,28 @@ const authModel = {
       throw error;
     }
   },
+
+  /**
+   * Change a user's nickname
+   * @param {number} userId - User ID
+   * @param {string} nickname - New nickname
+   * @returns {Promise<Object>} Updated user info
+   */
+  changeNickModel: async (userId, nickname) => {
+    try {
+      const [result] = await pool.query(
+        `UPDATE users 
+         SET nickname = ? 
+         WHERE user_id = ?`,
+        [nickname, userId]
+      );
+
+      return result;
+    } catch (error) {
+      console.error("Error in authModel.changeNick:", error);
+      throw error;
+    }
+  },
 };
 
 module.exports = { authModel };

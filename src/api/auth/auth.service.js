@@ -2,6 +2,7 @@ const { authModel } = require("./auth.Model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const TokenService = require("../../services/TokenService");
+const UserProfilePhoto = require("../profile/userProfilePhoto.Model");
 const {
   JWT_ACCESS_SECRET,
   JWT_REFRESH_SECRET,
@@ -51,6 +52,29 @@ const signup = async (email, password, name, nickname, phone) => {
       nickname,
       phone
     );
+
+    try {
+      // Try to set default profile image from URL if available
+      const frontendBaseUrl = process.env.FRONT_PUBLIC_BASE_URL;
+      if (frontendBaseUrl) {
+        const defaultImageUrl = `${frontendBaseUrl}/sample_profile.jpeg`;
+        try {
+          await UserProfilePhoto.createProfilePhotoFromUrl(user.id, defaultImageUrl);
+          logger.info(`Default profile image set from URL for user ${user.id}`);
+        } catch (imageError) {
+          logger.warn(`Failed to set profile image from URL, falling back to local file: ${imageError.message}`);
+          // Fall back to local file if URL fetch fails
+          await UserProfilePhoto.createDefaultProfilePhoto(user.id);
+        }
+      } else {
+        // If no frontend URL is configured, use local file directly
+        await UserProfilePhoto.createDefaultProfilePhoto(user.id);
+      }
+    } catch (error) {
+      // Log the error but don't fail the signup process
+      logger.error(`Error setting default profile image for user ${user.id}:`, error);
+    }
+
     return user;
   } catch (error) {
     console.error("Error in authService.signup:", error);
@@ -509,6 +533,16 @@ const invalidateRefreshToken = async (jti) => {
   }
 };
 
+const changeNickService = async (userId, nickname) => {
+  try {
+    const result = await authModel.changeNickModel(userId, nickname);
+    return result;
+  } catch (error) {
+    console.error("Error in authService.changeNick:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   signup,
   login,
@@ -516,4 +550,5 @@ module.exports = {
   logout,
   getCurrentUser,
   invalidateRefreshToken,
+  changeNickService,
 };

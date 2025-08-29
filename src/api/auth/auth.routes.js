@@ -1,5 +1,12 @@
 const express = require("express");
-const { signup, login, refreshToken, logout, getCurrentUser } = require("./auth.controller");
+const {
+  signup,
+  login,
+  refreshToken,
+  logout,
+  getCurrentUser,
+  changeNick,
+} = require("./auth.controller");
 const { isAuthenticated } = require("../../middlewares/auth.middleware");
 
 const router = express.Router();
@@ -8,8 +15,8 @@ const router = express.Router();
 router.post("/signup", signup);
 router.post("/login", login);
 router.post("/refresh-token", refreshToken);
-router.post("/logout", logout); // No authentication required
-
+router.post("/logout", logout);
+router.put("/:user_id/nickname", changeNick);
 // Protected routes
 router.get("/me", isAuthenticated, getCurrentUser);
 

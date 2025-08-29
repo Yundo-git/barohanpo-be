@@ -541,10 +541,31 @@ const logout = async (req, res) => {
   }
 };
 
+const changeNick = async (req, res) => {
+  const { user_id, nickname } = req.body;
+  console.log("user_id", user_id);
+  console.log("newNick", nickname);
+
+  try {
+    const result = await authService.changeNickService(user_id, nickname);
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error in authController.changeNick:", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   signup,
   login,
   refreshToken,
   logout,
   getCurrentUser,
+  changeNick,
 };
