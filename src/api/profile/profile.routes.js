@@ -70,7 +70,7 @@ const { isAuthenticated } = require("../../middlewares/auth.middleware");
  */
 // Upload profile photo route
 router.put(
-  "/:user_id/profile/photo",
+  "/:user_id/photo/upload",
   isAuthenticated,
   uploadProfileImage,
   ProfilePhotoController.uploadProfilePhoto.bind(ProfilePhotoController)
@@ -116,7 +116,7 @@ router.put(
  *         description: 서버 오류
  */
 router.get(
-  "/:user_id/profile/photo",
+  "/:user_id/photo",
   ProfilePhotoController.getProfilePhoto.bind(ProfilePhotoController)
 );
 
@@ -163,7 +163,7 @@ router.get(
  *         description: 서버 오류
  */
 router.post(
-  "/:user_id/profile/photo/default",
+  "/:user_id/photo/default",
   isAuthenticated,
   ProfilePhotoController.setDefaultProfilePhoto.bind(ProfilePhotoController)
 );
