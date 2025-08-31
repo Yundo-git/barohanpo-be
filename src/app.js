@@ -18,43 +18,32 @@ const { errorHandler, notFoundHandler } = require("./middlewares/errorHandler");
 const app = express();
 
 // 1) CORS Configuration (should be at the top)
-const allowedOrigins = [
-  // Development
-  /^http:\/\/localhost(:[0-9]+)?$/,  // All localhost ports
-  /^http:\/\/127.0.0.1(:[0-9]+)?$/, // All 127.0.0.1 ports
-  
-  // Specific IPs (development)
-  /^http:\/\/192\.168\.0\.\d{1,3}(:[0-9]+)?$/, // Local network IPs
-  
-  // Production domains
-  'https://barohanpo-fe.vercel.app',
-  'https://www.barohanpo.xyz',
-  'https://barohanpo.xyz',
-];
-
-// CORS configuration
 const corsOptions = {
-  // Origin validation function
+  // Allow all origins in development, specific ones in production
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps, curl, postman)
     if (!origin) return callback(null, true);
     
-    // Check if the origin is allowed
-    const isAllowed = allowedOrigins.some(allowedOrigin => {
-      if (typeof allowedOrigin === 'string') {
-        return origin === allowedOrigin;
-      } else if (allowedOrigin instanceof RegExp) {
-        return allowedOrigin.test(origin);
-      }
-      return false;
-    });
-    
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      console.warn(`CORS blocked request from origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+    // In development, allow all origins
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`Allowing CORS for development origin: ${origin}`);
+      return callback(null, true);
     }
+    
+    // In production, only allow specific origins
+    const allowedOrigins = [
+      'https://barohanpo-fe.vercel.app',
+      'https://www.barohanpo.xyz',
+      'https://barohanpo.xyz',
+      'http://localhost:3000' // For local development
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    console.warn(`CORS blocked request from origin: ${origin}`);
+    return callback(new Error('Not allowed by CORS'));
   },
   
   // Required for cookies, authorization headers with HTTPS
@@ -68,11 +57,6 @@ const corsOptions = {
     'Content-Type',
     'Authorization',
     'X-Requested-With',
-    'X-Forwarded-For',
-    'X-Forwarded-Proto',
-    'X-Forwarded-Port',
-    'X-Forwarded-Host',
-    'X-Refresh-Token',
     'Accept',
     'Accept-Encoding',
     'Accept-Language',
@@ -82,25 +66,31 @@ const corsOptions = {
     'DNT',
     'Origin',
     'Referer',
-    'User-Agent'
+    'User-Agent',
+    'If-None-Match',
+    'If-Modified-Since'
   ],
   
   // Exposed headers
   exposedHeaders: [
     'Content-Length',
+    'ETag',
+    'Last-Modified',
+    'Cache-Control',
     'Content-Type',
+    'Content-Disposition',
     'Authorization',
     'X-Refresh-Token'
   ],
   
-  // Enable CORS preflight across all routes
-  optionsSuccessStatus: 204, // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  // Set max age for preflight requests (in seconds)
+  maxAge: 600, // 10 minutes
   
-  // Cache preflight response for 1 hour (in seconds)
-  maxAge: 60 * 60,
+  // Required for cookies to be included in CORS requests
+  credentials: true,
   
-  // Set to true to pass the CORS preflight response to the next handler
-  preflightContinue: false
+  // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  optionsSuccessStatus: 200
 };
 
 // Apply CORS with the above configuration

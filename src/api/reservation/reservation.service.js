@@ -88,7 +88,7 @@ const fetchBooks = async (user_id) => {
     return [];
   }
 };
-
+//예약취소
 const fetchCancelBooks = async (user_id, book_id) => {
   console.log("in service user_id", user_id);
   console.log("in service book_id", book_id);
@@ -101,7 +101,7 @@ const fetchCancelBooks = async (user_id, book_id) => {
     console.error("Error in fetchCancelBooks:", error);
     throw error;
   }
-}
+};
 
 const fetchcancelList = async (user_id) => {
   try {
@@ -111,7 +111,7 @@ const fetchcancelList = async (user_id) => {
     console.error("Error in fetchcancelList:", error);
     return [];
   }
-}
+};
 
 module.exports = {
   fetchSlotsInRange,
@@ -119,5 +119,5 @@ module.exports = {
   reservationService,
   fetchBooks,
   fetchCancelBooks, // Fixed typo in function name
-  fetchcancelList
+  fetchcancelList,
 };

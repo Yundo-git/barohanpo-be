@@ -28,7 +28,7 @@ const upload = multer({
 
 // 프로필 이미지 업로드 미들웨어
 const uploadProfileImage = (req, res, next) => {
-  return upload.single('profileImage')(req, res, (err) => {
+  upload.single('file')(req, res, (err) => {
     if (err) {
       logger.error('파일 업로드 오류:', err);
       
@@ -41,7 +41,7 @@ const uploadProfileImage = (req, res, next) => {
       }
       
       // 파일 형식 오류 처리
-      if (err.status === 400) {
+      if (err.message.includes('지원하지 않는 파일 형식')) {
         return res.status(400).json({
           success: false,
           message: err.message
@@ -55,15 +55,15 @@ const uploadProfileImage = (req, res, next) => {
       });
     }
     
-    // 파일이 없는 경우
+    // 파일이 없을 경우
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: '프로필 이미지 파일이 필요합니다.'
+        message: '업로드할 파일이 없습니다.'
       });
     }
     
-    // 다음 미들웨어로 진행
+    // 파일이 정상적으로 업로드된 경우
     next();
   });
 };
@@ -99,9 +99,8 @@ const setCacheHeaders = (req, res, data, lastModified) => {
   }
 };
 
-// Export the uploadProfileImage function directly
-module.exports = uploadProfileImage;
-
-// Also export other utilities
-module.exports.generateETag = generateETag;
-module.exports.setCacheHeaders = setCacheHeaders;
+// Export the upload middleware and utilities
+module.exports = {
+  uploadMiddleware: upload.single('file'),
+  setCacheHeaders
+};

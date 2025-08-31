@@ -4,8 +4,9 @@ const {
   fetchSlotsInRange,
   fetchAvailableDates,
   reservationService,
+  fetchCancelBooks,
   fetchBooks,
-  fetchcancelList
+  fetchcancelList,
 } = require("./reservation.service");
 
 const log = debug("app:reservation");
@@ -80,9 +81,8 @@ const createReservation = async (req, res) => {
   }
 };
 const getBook = async (req, res) => {
-
   const { user_id } = req.params;
-  console.log("userid in con >>>>",user_id)
+  console.log("userid in con >>>>", user_id);
   try {
     const data = await fetchBooks(user_id);
     res.json(data);
@@ -98,17 +98,17 @@ const cancelBook = async (req, res) => {
   console.log("userid in con >>>>", user_id);
   console.log("bookid in con >>>>", book_id);
   try {
-    const data = await fetchcancelList(user_id, book_id);
+    const data = await fetchCancelBooks(user_id, book_id);
     res.json({
       success: true,
-      message: '예약이 취소되었습니다.',
-      data
+      message: "예약이 취소되었습니다.",
+      data,
     });
   } catch (error) {
     log("Error in cancelBook:", error);
     res.status(200).json({
       success: false,
-      message: error.message || '예약 취소 중 오류가 발생했습니다.'
+      message: error.message || "예약 취소 중 오류가 발생했습니다.",
     });
   }
 };
@@ -120,7 +120,7 @@ const getcancelList = async (req, res) => {
     res.json({
       success: true,
       data: Array.isArray(data) ? data : [],
-      count: Array.isArray(data) ? data.length : 0
+      count: Array.isArray(data) ? data.length : 0,
     });
     log("cancellation list", data);
   } catch (error) {
@@ -128,7 +128,7 @@ const getcancelList = async (req, res) => {
     res.status(200).json({
       success: true,
       data: [],
-      count: 0
+      count: 0,
     });
   }
 };

@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const uploadProfileImage = require("../../middlewares/upload.middleware");
+const { uploadMiddleware } = require("../../middlewares/upload.middleware");
 const ProfilePhotoController = require("./profilePhoto.controller");
-const { isAuthenticated } = require("../../middlewares/auth.middleware");
 
 /**
  * @swagger
@@ -13,7 +12,7 @@ const { isAuthenticated } = require("../../middlewares/auth.middleware");
 
 /**
  * @swagger
- * /api/users/{id}/profile/photo:
+ * /profile/{id}/photo/upload:
  *   put:
  *     summary: 프로필 사진 업로드
  *     tags: [Profile]
@@ -68,12 +67,17 @@ const { isAuthenticated } = require("../../middlewares/auth.middleware");
  *       500:
  *         description: 서버 오류
  */
-// Upload profile photo route
+// Upload profile photo route (temporarily without authentication)
 router.put(
   "/:user_id/photo/upload",
-  isAuthenticated,
-  uploadProfileImage,
+  uploadMiddleware,
   ProfilePhotoController.uploadProfilePhoto.bind(ProfilePhotoController)
+);
+
+// Get profile photo route
+router.get(
+  "/:user_id/photo",
+  ProfilePhotoController.getProfilePhoto.bind(ProfilePhotoController)
 );
 
 /**
@@ -164,7 +168,6 @@ router.get(
  */
 router.post(
   "/:user_id/photo/default",
-  isAuthenticated,
   ProfilePhotoController.setDefaultProfilePhoto.bind(ProfilePhotoController)
 );
 

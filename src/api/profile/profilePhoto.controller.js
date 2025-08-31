@@ -7,21 +7,12 @@ class ProfilePhotoController {
    * 프로필 사진을 업로드합니다.
    */
   static async uploadProfilePhoto(req, res, next) {
-    console.log("req.user", req.user);
-    console.log("req.params", req.params);
-    console.log("req.file", req.file);
+    console.log("Request received - params:", req.params);
+    console.log("File info:", req.file ? 'File received' : 'No file received');
 
     try {
       const { user_id: userId } = req.params;
       const { file } = req;
-
-      // 권한 확인 (자신의 프로필만 수정 가능)
-      if (req.user.id !== parseInt(userId) && req.user.role !== "admin") {
-        return res.status(403).json({
-          success: false,
-          message: "자신의 프로필 사진만 수정할 수 있습니다.",
-        });
-      }
 
       // 파일이 없는 경우
       if (!file) {
@@ -70,12 +61,29 @@ class ProfilePhotoController {
         });
       }
 
-      // 캐시 헤더 설정
-      const lastModified = photo.updated_at || new Date();
-      setCacheHeaders(req, res, photo.photo_blob, lastModified);
+      // 캐시 제어 헤더 설정
+      const oneDayInSeconds = 86400; // 1일(초 단위)
+      const cacheControl = `public, max-age=${oneDayInSeconds}`;
+      
+      // ETag 생성 (간단한 해시 사용)
+      const etag = `"${Buffer.from(photo.photo_blob).length}"`;
+      
+      // 클라이언트의 If-None-Match 헤더 확인
+      const clientEtag = req.headers['if-none-match'];
+      if (clientEtag && clientEtag === etag) {
+        return res.status(304).end();
+      }
+
+      // 응답 헤더 설정
+      res.set({
+        'Content-Type': photo.mime_type,
+        'Cache-Control': cacheControl,
+        'ETag': etag,
+        'Access-Control-Expose-Headers': 'ETag, Content-Type',
+        'Vary': 'Origin'
+      });
 
       // 이미지 응답
-      res.set("Content-Type", photo.mime_type);
       res.send(photo.photo_blob);
     } catch (error) {
       logger.error("프로필 사진 조회 중 오류:", error);
