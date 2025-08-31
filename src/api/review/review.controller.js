@@ -1,4 +1,4 @@
-const { fetchAll, fetchById, createReview, updateReview, deleteReview } = require("./review.service");
+const { fetchAll, fetchById, createReviewService, updateReview, deleteReview } = require("./review.service");
 
 //모든 리뷰 내용 조회
 const getAllReviews = async (req, res) => {
@@ -25,9 +25,9 @@ const getReviewById = async (req, res) => {
 
 //리뷰 생성
 const createReviewController = async (req, res) => {
-    const { user_id, p_id, review, rating } = req.body;
+    const { user_id,book_id, p_id, score, comment , book_date, book_time } = req.body;
     try {
-        const result = await createReview(user_id, p_id, review, rating);
+        const result = await createReviewService(user_id, p_id, score, comment , book_id, book_date, book_time);
         res.status(201).json({ success: true, data: result });
     } catch (error) {
         console.error("Error in reviewController.createReview:", error);

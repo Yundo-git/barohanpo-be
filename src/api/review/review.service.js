@@ -21,9 +21,9 @@ const fetchById = async (id) => {
     }
 };
 
-const createReview = async (user_id, p_id, review, rating) => {
+const createReviewService = async (user_id, p_id, score, comment , book_id, book_date, book_time) => {
     try {
-        const result = await reviewModel.createReview(user_id, p_id, review, rating);
+        const result = await reviewModel.createReview(user_id, p_id, score, comment , book_id, book_date, book_time);
         return result;
     } catch (error) {
         console.error("Error in reviewService.createReview:", error);
@@ -54,7 +54,7 @@ const deleteReview = async (id) => {
 module.exports = {
     fetchAll,
     fetchById,
-    createReview,
+    createReviewService,
     updateReview,
     deleteReview
 };

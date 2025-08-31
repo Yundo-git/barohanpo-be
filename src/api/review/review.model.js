@@ -22,9 +22,9 @@ const reviewModel = {
         }
     },
 
-    createReview: async (user_id, p_id, review, rating) => {
+    createReview: async (user_id, p_id, score, comment , book_id, book_date, book_time) => {
         try {
-            const [rows] = await db.query("INSERT INTO review (user_id, p_id, review, rating) VALUES (?, ?, ?, ?)", [user_id, p_id, review, rating]);
+            const [rows] = await db.query("INSERT INTO reviews (user_id, p_id, score, comment , book_id, book_date, book_time) VALUES (?, ?, ?, ?, ?, ?, ?)", [user_id, p_id, score, comment , book_id, book_date, book_time]);
             return rows[0];
         } catch (error) {
             console.error("Error in reviewModel.createReview:", error);
@@ -51,5 +51,6 @@ const reviewModel = {
             throw error;
         }
     },
-}
+};
 
+module.exports = { reviewModel };
