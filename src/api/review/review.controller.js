@@ -1,6 +1,7 @@
 const {
   fetchAll,
   fetchById,
+  fetchOneId,
   createReviewService,
   updateReview,
   deleteReview,
@@ -23,6 +24,19 @@ const getReviewById = async (req, res) => {
   console.log("userid in con >>>>", user_id);
   try {
     const row = await fetchById(user_id);
+    res.json({ success: true, data: row });
+  } catch (error) { 
+    console.error("Error in reviewController.getReviewById:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+//특정회원의 작성된 리뷰의 아이디만 조회
+const getReviewId = async (req, res) => {
+  const { user_id } = req.params;
+  console.log("userid in con >>>>", user_id);
+  try {
+    const row = await fetchOneId(user_id);
     res.json({ success: true, data: row });
   } catch (error) {
     console.error("Error in reviewController.getReviewById:", error);
@@ -79,6 +93,7 @@ const deleteReviewController = async (req, res) => {
 module.exports = {
   getAllReviews,
   getReviewById,
+  getReviewId,
   createReviewController,
   updateReviewController,
   deleteReviewController,

@@ -22,6 +22,17 @@ const reviewModel = {
       throw error;
     }
   },
+  findOneId: async (user_id) => {
+    try {
+      const [rows] = await db.query("SELECT book_id FROM reviews WHERE user_id = ?", [
+        user_id,
+      ]);
+      return rows;
+    } catch (error) {
+      console.error("Error in reviewModel.findOneId:", error);
+      throw error;
+    }
+  },
 
   createReview: async (
     user_id,

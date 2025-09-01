@@ -20,6 +20,16 @@ const fetchById = async (user_id) => {
   }
 };
 
+const fetchOneId = async (user_id)=>{
+  try{
+    const row = await reviewModel.findOneId(user_id);
+    return row;
+  }catch(error){
+    console.error("Error in reviewService.fetchOneId:", error);
+    throw error;
+  }
+}
+
 const createReviewService = async (
   user_id,
   p_id,
@@ -69,6 +79,7 @@ const deleteReview = async (id) => {
 module.exports = {
   fetchAll,
   fetchById,
+  fetchOneId,
   createReviewService,
   updateReview,
   deleteReview,
