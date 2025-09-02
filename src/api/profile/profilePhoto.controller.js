@@ -74,14 +74,39 @@ class ProfilePhotoController {
         return res.status(304).end();
       }
 
-      // 응답 헤더 설정
-      res.set({
+      // Determine the allowed origin
+      const allowedOrigins = [
+        'https://barohanpo-fe.vercel.app',
+        'https://www.barohanpo.xyz',
+        'https://barohanpo.xyz',
+        'http://localhost:3000',
+        'http://localhost:5000'
+      ];
+      
+      // Get the request origin
+      const requestOrigin = req.headers.origin;
+      
+      // Set CORS headers
+      const corsHeaders = {
         'Content-Type': photo.mime_type,
         'Cache-Control': cacheControl,
         'ETag': etag,
-        'Access-Control-Expose-Headers': 'ETag, Content-Type',
-        'Vary': 'Origin'
-      });
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Expose-Headers': 'ETag, Content-Type, Content-Length, Content-Range',
+        'Vary': 'Origin',
+        'Timing-Allow-Origin': '*',
+        'Access-Control-Max-Age': '86400' // 24 hours
+      };
+      
+      // Set Access-Control-Allow-Origin header
+      if (process.env.NODE_ENV !== 'production' || !requestOrigin) {
+        corsHeaders['Access-Control-Allow-Origin'] = '*';
+      } else if (allowedOrigins.includes(requestOrigin)) {
+        corsHeaders['Access-Control-Allow-Origin'] = requestOrigin;
+      }
+      
+      // Apply all headers
+      res.set(corsHeaders);
 
       // 이미지 응답
       res.send(photo.photo_blob);

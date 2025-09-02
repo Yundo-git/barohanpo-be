@@ -1,4 +1,5 @@
 const { reviewModel } = require("./review.model");
+const db = require("../../config/database");
 
 const fetchAll = async () => {
   try {
@@ -47,10 +48,15 @@ const createReviewService = async (
   comment,
   book_id,
   book_date,
-  book_time
+  book_time,
+  photo_blob = null
 ) => {
+  const connection = await db.getConnection();
   try {
-    const result = await reviewModel.createReview(
+    await connection.beginTransaction();
+    
+    // Create the review first
+    const reviewId = await reviewModel.createReview(
       user_id,
       p_id,
       score,
@@ -59,10 +65,20 @@ const createReviewService = async (
       book_date,
       book_time
     );
-    return result;
+    
+    // If there's a photo, save it and update the review with the photo ID
+    if (photo_blob) {
+      await reviewModel.createReviewPhoto(reviewId, photo_blob);
+    }
+    
+    await connection.commit();
+    return { reviewId };
   } catch (error) {
+    await connection.rollback();
     console.error("Error in reviewService.createReview:", error);
     throw error;
+  } finally {
+    connection.release();
   }
 };
 

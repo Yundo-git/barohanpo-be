@@ -99,8 +99,53 @@ const setCacheHeaders = (req, res, data, lastModified) => {
   }
 };
 
+// 리뷰 사진 업로드 미들웨어 (handles both 'photo' and 'image' field names)
+const uploadReviewPhoto = (req, res, next) => {
+  // Use a custom file filter that's more permissive with field names
+  const customUpload = multer({
+    storage: storage,
+    limits: { fileSize: MAX_FILE_SIZE, files: 1 },
+    fileFilter: (req, file, cb) => {
+      // Accept any file that passes the type check
+      fileFilter(req, file, cb);
+    }
+  }).any(); // Accept any field name
+  
+  customUpload(req, res, (err) => {
+    if (err) {
+      logger.error('리뷰 사진 업로드 오류:', err);
+      
+      // 파일 크기 초과 오류 처리
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          success: false,
+          message: '파일 크기가 너무 큽니다. 최대 5MB까지 업로드 가능합니다.'
+        });
+      }
+      
+      // 파일 형식 오류 처리
+      if (err.message.includes('지원하지 않는 파일 형식')) {
+        return res.status(400).json({
+          success: false,
+          message: err.message
+        });
+      }
+      
+      // 기타 오류 처리
+      return res.status(400).json({
+        success: false,
+        message: '파일 업로드 중 오류가 발생했습니다.'
+      });
+    }
+    
+    next();
+  });
+};
+
 // Export the upload middleware and utilities
 module.exports = {
   uploadMiddleware: upload.single('file'),
-  setCacheHeaders
+  uploadReviewPhoto,
+  setCacheHeaders,
+  upload // Exporting the base upload middleware for flexibility
 };

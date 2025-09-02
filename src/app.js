@@ -24,7 +24,7 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps, curl, postman)
     if (!origin) return callback(null, true);
     
-    // In development, allow all origins
+    // In development, allow all origins and log them
     if (process.env.NODE_ENV !== 'production') {
       console.log(`Allowing CORS for development origin: ${origin}`);
       return callback(null, true);
@@ -35,10 +35,17 @@ const corsOptions = {
       'https://barohanpo-fe.vercel.app',
       'https://www.barohanpo.xyz',
       'https://barohanpo.xyz',
-      'http://localhost:3000' // For local development
+      'http://localhost:3000', // For local development
+      'http://localhost:5000'  // For local API access
     ];
     
     if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Check if the origin matches the regex pattern for localhost with any port
+    const localhostRegex = /^https?:\/\/localhost(:[0-9]+)?$/;
+    if (localhostRegex.test(origin)) {
       return callback(null, true);
     }
     
@@ -68,26 +75,27 @@ const corsOptions = {
     'Referer',
     'User-Agent',
     'If-None-Match',
-    'If-Modified-Since'
+    'If-Modified-Since',
+    'Range' // For byte-range requests
   ],
   
   // Exposed headers
   exposedHeaders: [
     'Content-Length',
+    'Content-Range',
     'ETag',
     'Last-Modified',
     'Cache-Control',
     'Content-Type',
     'Content-Disposition',
     'Authorization',
-    'X-Refresh-Token'
+    'X-Refresh-Token',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Credentials'
   ],
   
   // Set max age for preflight requests (in seconds)
-  maxAge: 600, // 10 minutes
-  
-  // Required for cookies to be included in CORS requests
-  credentials: true,
+  maxAge: 86400, // 24 hours
   
   // Some legacy browsers (IE11, various SmartTVs) choke on 204
   optionsSuccessStatus: 200

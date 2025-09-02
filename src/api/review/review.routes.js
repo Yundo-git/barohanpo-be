@@ -1,4 +1,5 @@
 const express = require("express");
+const { uploadReviewPhoto } = require("../../middlewares/upload.middleware");
 const {
   getAllReviews,
   getReviewById,
@@ -16,7 +17,8 @@ router.get("/fivestar", getFiveStarReview); // 리뷰의 별점이 5점인 리�
 router.get("/:user_id", getReviewById); // user_id로 리뷰조회
 router.get("/:user_id/id", getReviewId); // user_id로 리뷰의 아이디만 조회
 
-router.post("/", createReviewController);
+// 리뷰 생성 (with optional photo)
+router.post("/", uploadReviewPhoto, createReviewController);
 router.put("/:user_id", updateReviewController);
 router.delete("/:user_id", deleteReviewController);
 

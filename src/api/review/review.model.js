@@ -45,28 +45,40 @@ const reviewModel = {
     }
   },
 
-  createReview: async (
-    user_id,
-    p_id,
-    score,
-    comment,
-    book_id,
-    book_date,
-    book_time
-  ) => {
+  createReview: async function(user_id, p_id, score, comment, book_id, book_date, book_time) {
     try {
-      const [rows] = await db.query(
-        "INSERT INTO reviews (user_id, p_id, score, comment , book_id, book_date, book_time) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      const [result] = await db.query(
+        "INSERT INTO reviews (user_id, p_id, score, comment, book_id, book_date, book_time) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [user_id, p_id, score, comment, book_id, book_date, book_time]
       );
-      return rows[0];
+      return result.insertId; // Return the new review_id
     } catch (error) {
       console.error("Error in reviewModel.createReview:", error);
       throw error;
     }
   },
 
-  updateReview: async (id, review, rating) => {
+  createReviewPhoto: async function(review_id, photo_blob) {
+    try {
+      const [result] = await db.query(
+        "INSERT INTO review_photos (review_id, review_photo_blob) VALUES (?, ?)",
+        [review_id, photo_blob]
+      );
+      
+      // Update the review with the new photo_id
+      await db.query(
+        "UPDATE reviews SET review_photo_id = ? WHERE review_id = ?",
+        [result.insertId, review_id]
+      );
+      
+      return result.insertId;
+    } catch (error) {
+      console.error("Error in reviewModel.createReviewPhoto:", error);
+      throw error;
+    }
+  },
+
+  updateReview: async function(id, review, rating) {
     try {
       const [rows] = await db.query(
         "UPDATE review SET review = ?, rating = ? WHERE id = ?",
@@ -79,7 +91,7 @@ const reviewModel = {
     }
   },
 
-  deleteReview: async (id) => {
+  deleteReview: async function(id) {
     try {
       const [rows] = await db.query("DELETE FROM reviews WHERE id = ?", [id]);
       return rows[0];
