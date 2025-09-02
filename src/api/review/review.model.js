@@ -3,25 +3,62 @@ const db = require("../../config/database");
 const reviewModel = {
   findAll: async () => {
     try {
-      const [rows] = await db.query("SELECT * FROM review");
-      return rows;
+      const [reviews] = await db.query("SELECT * FROM reviews");
+      
+      // Fetch photos for each review that has a photo_id
+      const reviewsWithPhotos = await Promise.all(reviews.map(async (review) => {
+        if (review.review_photo_id) {
+          const [photos] = await db.query(
+            "SELECT * FROM review_photos WHERE review_photo_id = ?", 
+            [review.review_photo_id]
+          );
+          return {
+            ...review,
+            photos: photos || []
+          };
+        }
+        return {
+          ...review,
+          photos: []
+        };
+      }));
+      
+      return reviewsWithPhotos;
     } catch (error) {
       console.error("Error in reviewModel.findAll:", error);
       throw error;
     }
   },
-
+  //특정 user_id로 review 조회
   findById: async (user_id) => {
     try {
-      const [rows] = await db.query("SELECT * FROM reviews WHERE user_id = ?", [
-        user_id,
-      ]);
-      return rows;
+      const [reviews] = await db.query("SELECT * FROM reviews WHERE user_id = ?", [user_id]);
+      
+      // Fetch photos for each review that has a photo_id
+      const reviewsWithPhotos = await Promise.all(reviews.map(async (review) => {
+        if (review.review_photo_id) {
+          const [photos] = await db.query(
+            "SELECT * FROM review_photos WHERE review_photo_id = ?", 
+            [review.review_photo_id]
+          );
+          return {
+            ...review,
+            photos: photos || []
+          };
+        }
+        return {
+          ...review,
+          photos: []
+        };
+      }));
+      
+      return reviewsWithPhotos;
     } catch (error) {
       console.error("Error in reviewModel.findById:", error);
       throw error;
     }
   },
+  //특정 user_id로 book_id 조회
   findOneId: async (user_id) => {
     try {
       const [rows] = await db.query(
@@ -34,11 +71,30 @@ const reviewModel = {
       throw error;
     }
   },
+  //평점이 5점인애들만 조회
   findFiveStarReview: async () => {
     try {
-      const [rows] = await db.query("SELECT * FROM reviews WHERE score = 5");
-      console.log("rowssssss", rows);
-      return rows;
+      const [reviews] = await db.query("SELECT * FROM reviews WHERE score = 5");
+      
+      // Fetch photos for each 5-star review that has a photo_id
+      const reviewsWithPhotos = await Promise.all(reviews.map(async (review) => {
+        if (review.review_photo_id) {
+          const [photos] = await db.query(
+            "SELECT * FROM review_photos WHERE review_photo_id = ?", 
+            [review.review_photo_id]
+          );
+          return {
+            ...review,
+            photos: photos || []
+          };
+        }
+        return {
+          ...review,
+          photos: []
+        };
+      }));
+      
+      return reviewsWithPhotos;
     } catch (error) {
       console.error("Error in reviewModel.findFiveStarReview:", error);
       throw error;
