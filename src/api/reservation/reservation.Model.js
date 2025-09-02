@@ -27,7 +27,7 @@ const booksModel = {
       const [rows] = await db.query(
         `SELECT DISTINCT DATE(slot_date) as date 
          FROM reservation_slot 
-         WHERE p_id = ? AND is_available = 1 
+         WHERE p_id = ? 
          AND slot_date >= CURDATE() 
          ORDER BY date`,
         [p_id]
@@ -41,11 +41,11 @@ const booksModel = {
           `SELECT 
              p_id,
              slot_date,
-             slot_time
+             slot_time,
+             is_available
            FROM reservation_slot 
            WHERE p_id = ? 
              AND slot_date = ? 
-             AND is_available = 1
            ORDER BY slot_date`,
           [p_id, date]
         );
@@ -57,7 +57,7 @@ const booksModel = {
           availableDates.push({
             p_id: slot.p_id,
             date: date,
-            is_available: 1,
+            is_available: slot.is_available || 0, // 실제 is_available 값 사용
             time: slot.slot_time,
           });
         });
