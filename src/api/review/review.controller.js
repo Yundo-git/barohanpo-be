@@ -3,6 +3,7 @@ const {
   fetchById,
   fetchOneId,
   createReviewService,
+  fetchFiveStarReview,
   updateReview,
   deleteReview,
 } = require("./review.service");
@@ -25,7 +26,7 @@ const getReviewById = async (req, res) => {
   try {
     const row = await fetchById(user_id);
     res.json({ success: true, data: row });
-  } catch (error) { 
+  } catch (error) {
     console.error("Error in reviewController.getReviewById:", error);
     res.status(500).json({ success: false, error: error.message });
   }
@@ -40,6 +41,18 @@ const getReviewId = async (req, res) => {
     res.json({ success: true, data: row });
   } catch (error) {
     console.error("Error in reviewController.getReviewById:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+//별점이 5점인 리뷰 조회
+const getFiveStarReview = async (req, res) => {
+  try {
+    console.log("in controller");
+    const rows = await fetchFiveStarReview();
+    res.json({ success: true, count: rows.length, data: rows });
+  } catch (error) {
+    console.error("Error in reviewController.getFiveStarReview:", error);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -94,6 +107,7 @@ module.exports = {
   getAllReviews,
   getReviewById,
   getReviewId,
+  getFiveStarReview,
   createReviewController,
   updateReviewController,
   deleteReviewController,

@@ -24,12 +24,23 @@ const reviewModel = {
   },
   findOneId: async (user_id) => {
     try {
-      const [rows] = await db.query("SELECT book_id FROM reviews WHERE user_id = ?", [
-        user_id,
-      ]);
+      const [rows] = await db.query(
+        "SELECT book_id FROM reviews WHERE user_id = ?",
+        [user_id]
+      );
       return rows;
     } catch (error) {
       console.error("Error in reviewModel.findOneId:", error);
+      throw error;
+    }
+  },
+  findFiveStarReview: async () => {
+    try {
+      const [rows] = await db.query("SELECT * FROM reviews WHERE score = 5");
+      console.log("rowssssss", rows);
+      return rows;
+    } catch (error) {
+      console.error("Error in reviewModel.findFiveStarReview:", error);
       throw error;
     }
   },

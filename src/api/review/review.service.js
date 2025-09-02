@@ -20,15 +20,25 @@ const fetchById = async (user_id) => {
   }
 };
 
-const fetchOneId = async (user_id)=>{
-  try{
+const fetchOneId = async (user_id) => {
+  try {
     const row = await reviewModel.findOneId(user_id);
     return row;
-  }catch(error){
+  } catch (error) {
     console.error("Error in reviewService.fetchOneId:", error);
     throw error;
   }
-}
+};
+const fetchFiveStarReview = async () => {
+  console.log("in service");
+  try {
+    const rows = await reviewModel.findFiveStarReview();
+    return rows;
+  } catch (error) {
+    console.error("Error in reviewService.fetchFiveStarReview:", error);
+    throw error;
+  }
+};
 
 const createReviewService = async (
   user_id,
@@ -83,4 +93,5 @@ module.exports = {
   createReviewService,
   updateReview,
   deleteReview,
+  fetchFiveStarReview,
 };
