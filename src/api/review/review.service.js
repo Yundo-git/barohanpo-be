@@ -117,13 +117,49 @@ const deleteReview = async (review_id) => {
   }
 };
 
+// Get all photos for a review
+const getReviewPhotos = async (review_id) => {
+  try {
+    const photos = await reviewModel.getReviewPhotos(review_id);
+    return photos;
+  } catch (error) {
+    console.error("Error in reviewService.getReviewPhotos:", error);
+    throw error;
+  }
+};
+
+// Add a photo to a review
+const addReviewPhoto = async (review_id, photo_blob) => {
+  try {
+    const photoId = await reviewModel.addReviewPhoto(review_id, photo_blob);
+    return photoId;
+  } catch (error) {
+    console.error("Error in reviewService.addReviewPhoto:", error);
+    throw error;
+  }
+};
+
+// Delete a photo from a review
+const deleteReviewPhoto = async (photo_id) => {
+  try {
+    const result = await reviewModel.deleteReviewPhoto(photo_id);
+    return result;
+  } catch (error) {
+    console.error("Error in reviewService.deleteReviewPhoto:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   fetchAll,
   fetchById,
   fetchOneId,
+  fetchFiveStarReview,
+  fetchPharmacyReview,
   createReviewService,
   updateReview,
   deleteReview,
-  fetchPharmacyReview,
-  fetchFiveStarReview,
+  getReviewPhotos,
+  addReviewPhoto,
+  deleteReviewPhoto
 };

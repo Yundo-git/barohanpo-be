@@ -8,10 +8,10 @@ const reviewModel = {
       // Fetch photos for each review that has a photo_id
       const reviewsWithPhotos = await Promise.all(
         reviews.map(async (review) => {
-          if (review.review_photo_id) {
+          if (review.review_id) {
             const [photos] = await db.query(
-              "SELECT * FROM review_photos WHERE review_photo_id = ?",
-              [review.review_photo_id]
+              "SELECT * FROM review_photos WHERE review_id = ?",
+              [review.review_id]
             );
             return {
               ...review,
@@ -42,10 +42,10 @@ const reviewModel = {
       // Fetch photos for each review that has a photo_id
       const reviewsWithPhotos = await Promise.all(
         reviews.map(async (review) => {
-          if (review.review_photo_id) {
+          if (review.review_id) {
             const [photos] = await db.query(
-              "SELECT * FROM review_photos WHERE review_photo_id = ?",
-              [review.review_photo_id]
+              "SELECT * FROM review_photos WHERE review_id = ?",
+              [review.review_id]
             );
             return {
               ...review,
@@ -86,10 +86,10 @@ const reviewModel = {
       // Fetch photos for each 5-star review that has a photo_id
       const reviewsWithPhotos = await Promise.all(
         reviews.map(async (review) => {
-          if (review.review_photo_id) {
+          if (review.review_id) {
             const [photos] = await db.query(
-              "SELECT * FROM review_photos WHERE review_photo_id = ?",
-              [review.review_photo_id]
+              "SELECT * FROM review_photos WHERE review_id = ?",
+              [review.review_id]
             );
             return {
               ...review,
@@ -119,10 +119,10 @@ const reviewModel = {
       // Fetch photos for each review that has a photo_id
       const reviewsWithPhotos = await Promise.all(
         reviews.map(async (review) => {
-          if (review.review_photo_id) {
+          if (review.review_id) {
             const [photos] = await db.query(
-              "SELECT * FROM review_photos WHERE review_photo_id = ?",
-              [review.review_photo_id]
+              "SELECT * FROM review_photos WHERE review_id = ?",
+              [review.review_id]
             );
             return {
               ...review,
@@ -184,55 +184,99 @@ const reviewModel = {
     }
   },
 
-  updateReview: async function (review_id, score, comment, photo_blob = null) {
+  // Get all photos for a review
+  getReviewPhotos: async function (review_id) {
+    try {
+      const [photos] = await db.query(
+        "SELECT * FROM review_photos WHERE review_id = ? ",
+        [review_id]
+      );
+      return photos;
+    } catch (error) {
+      console.error("Error in reviewModel.getReviewPhotos:", error);
+      throw error;
+    }
+  },
+
+  // Add a new photo to a review
+  addReviewPhoto: async function (review_id, photo_blob) {
+    try {
+      const [result] = await db.query(
+        "INSERT INTO review_photos (review_id, review_photo_blob) VALUES (?, ?)",
+        [review_id, photo_blob]
+      );
+      return result.insertId;
+    } catch (error) {
+      console.error("Error in reviewModel.addReviewPhoto:", error);
+      throw error;
+    }
+  },
+
+  // Delete a photo from a review
+  deleteReviewPhoto: async function (photo_id) {
+    try {
+      await db.query("DELETE FROM review_photos WHERE review_photo_id = ?", [
+        photo_id,
+      ]);
+      return true;
+    } catch (error) {
+      console.error("Error in reviewModel.deleteReviewPhoto:", error);
+      throw error;
+    }
+  },
+
+  updateReview: async function (review_id, score, comment, photo_blobs = []) {
     const connection = await db.getConnection();
     try {
       await connection.beginTransaction();
 
-      // 1. Check if there's an existing photo for this review
-      const [existingReview] = await connection.query(
-        "SELECT review_photo_id FROM reviews WHERE review_id = ?",
-        [review_id]
-      );
-
-      // 2. Update the review text and rating
+      // 1. 리뷰 텍스트 업데이트
       const [result] = await connection.query(
         "UPDATE reviews SET score = ?, comment = ? WHERE review_id = ?",
         [score, comment, review_id]
       );
 
-      // 3. Handle photo updates
-      if (photo_blob) {
-        // If there's a new photo, update or insert it
-        if (existingReview[0]?.review_photo_id) {
-          // Update existing photo
+      // 2. 기존 사진 조회
+      const [existingPhotos] = await connection.query(
+        "SELECT review_photo_id FROM review_photos WHERE review_id = ? ",
+        [review_id]
+      );
+
+      // 3. 사진 업데이트
+      if (photo_blobs && photo_blobs.length > 0) {
+        // 기존 사진 삭제
+        if (existingPhotos.length > 0) {
           await connection.query(
-            "UPDATE review_photos SET review_photo_blob = ? WHERE review_photo_id = ?",
-            [photo_blob, existingReview[0].review_photo_id]
+            "DELETE FROM review_photos WHERE review_id = ?",
+            [review_id]
           );
-        } else {
-          // Insert new photo
+        }
+
+        // 새 사진 추가
+        let firstPhotoId = null;
+        for (const photo_blob of photo_blobs) {
           const [photoResult] = await connection.query(
             "INSERT INTO review_photos (review_id, review_photo_blob) VALUES (?, ?)",
             [review_id, photo_blob]
           );
 
-          // Update the review with the new photo_id
+          // 첫 번째 사진 ID 저장
+          if (!firstPhotoId) {
+            firstPhotoId = photoResult.insertId;
+          }
+        }
+
+        // 리뷰 테이블에 첫 번째 사진 ID 업데이트
+        if (firstPhotoId) {
           await connection.query(
             "UPDATE reviews SET review_photo_id = ? WHERE review_id = ?",
-            [photoResult.insertId, review_id]
+            [firstPhotoId, review_id]
           );
         }
-      } else if (existingReview[0]?.review_photo_id) {
-        // If no new photo is provided but there was an existing photo, remove it
+      } else if (existingPhotos.length > 0) {
+        // If no new photos are provided but there were existing ones, remove them all
         await connection.query(
-          "DELETE FROM review_photos WHERE review_photo_id = ?",
-          [existingReview[0].review_photo_id]
-        );
-        
-        // Clear the photo reference from the review
-        await connection.query(
-          "UPDATE reviews SET review_photo_id = NULL WHERE review_id = ?",
+          "DELETE FROM review_photos WHERE review_id = ?",
           [review_id]
         );
       }
@@ -253,12 +297,12 @@ const reviewModel = {
     try {
       await connection.beginTransaction();
 
-      // 1. Delete related review photos first
+      // 1. 사진부터 지우기
       await connection.query("DELETE FROM review_photos WHERE review_id = ?", [
         review_id,
       ]);
 
-      // 2. Delete the review
+      // 2. 리뷰 지우기
       const [result] = await connection.query(
         "DELETE FROM reviews WHERE review_id = ?",
         [review_id]

@@ -112,26 +112,89 @@ const createReviewController = async (req, res) => {
   }
 };
 
-//리뷰 수정
+// Get all photos for a review
+const getReviewPhotosController = async (req, res) => {
+  const { review_id } = req.params;
+  
+  try {
+    const photos = await getReviewPhotos(review_id);
+    res.json({
+      success: true,
+      data: photos
+    });
+  } catch (error) {
+    console.error("Error in reviewController.getReviewPhotos:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "리뷰 사진을 불러오는 중 오류가 발생했습니다.",
+    });
+  }
+};
+
+// Add a photo to a review
+const addReviewPhotoController = async (req, res) => {
+  const { review_id } = req.params;
+  
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: "사진 파일이 필요합니다."
+      });
+    }
+    
+    const photoId = await addReviewPhoto(review_id, req.file.buffer);
+    
+    res.status(201).json({
+      success: true,
+      photo_id: photoId,
+      message: "리뷰 사진이 추가되었습니다."
+    });
+  } catch (error) {
+    console.error("Error in reviewController.addReviewPhoto:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "리뷰 사진 추가 중 오류가 발생했습니다.",
+    });
+  }
+};
+
+// Delete a photo from a review
+const deleteReviewPhotoController = async (req, res) => {
+  const { photo_id } = req.params;
+  
+  try {
+    await deleteReviewPhoto(photo_id);
+    res.json({
+      success: true,
+      message: "리뷰 사진이 삭제되었습니다."
+    });
+  } catch (error) {
+    console.error("Error in reviewController.deleteReviewPhoto:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "리뷰 사진 삭제 중 오류가 발생했습니다.",
+    });
+  }
+};
+
+// Update a review with multiple photos
 const updateReviewController = async (req, res) => {
   const { review_id } = req.params;
   const { score, comment } = req.body;
-  console.log("review_id", review_id);
-  console.log("score", score);
-  console.log("comment", comment);
+  
   try {
-    let photo_blob = null;
-
-    // Check if there's an uploaded file (handle both single and multiple file uploads)
+    // Handle multiple file uploads
+    let photo_blobs = [];
     if (req.file) {
-      // Handle single file upload
-      photo_blob = req.file.buffer;
+      // Single file upload
+      photo_blobs = [req.file.buffer];
     } else if (req.files && req.files.length > 0) {
-      // Handle multiple files (take the first one)
-      photo_blob = req.files[0].buffer;
+      // Multiple file uploads
+      photo_blobs = req.files.map(file => file.buffer);
     }
 
-    const result = await updateReview(review_id, score, comment, photo_blob);
+    const result = await updateReview(review_id, score, comment, photo_blobs);
 
     if (result.affectedRows > 0) {
       res.json({
@@ -174,4 +237,7 @@ module.exports = {
   createReviewController,
   updateReviewController,
   deleteReviewController,
+  getReviewPhotosController,
+  addReviewPhotoController,
+  deleteReviewPhotoController
 };

@@ -1,5 +1,5 @@
 const express = require("express");
-const { uploadReviewPhoto } = require("../../middlewares/upload.middleware");
+const { uploadReviewPhoto, uploadMultipleReviewPhotos } = require("../../middlewares/upload.middleware");
 const {
   getAllReviews,
   getReviewById,
@@ -9,23 +9,32 @@ const {
   getReviewId,
   getFiveStarReview,
   getPharmacyReview,
+  getReviewPhotosController,
+  addReviewPhotoController,
+  deleteReviewPhotoController
 } = require("./review.controller");
 
 const router = express.Router();
 
+// Review routes
 router.get("/", getAllReviews);
-router.get("/fivestar", getFiveStarReview); // 리뷰의 별점이 5점인 리뷰만 조회
-router.get("/:user_id", getReviewById); // user_id로 리뷰조회
-router.get("/:user_id/id", getReviewId); // user_id로 리뷰의 아이디만 조회
+router.get("/fivestar", getFiveStarReview); // Get reviews with 5 stars
+router.get("/:user_id", getReviewById); // Get reviews by user_id
+router.get("/:user_id/id", getReviewId); // Get review ID by user_id
 router.get("/:pharmacyId/pharmacyReview", getPharmacyReview);
 
-// 리뷰 생성 (with optional photo)
+// Create review (with optional photo)
 router.post("/", uploadReviewPhoto, createReviewController);
 
-//리뷰 삭제
+// Delete review
 router.delete("/:review_id/del", deleteReviewController);
 
-//리뷰 업로드
-router.put("/:review_id/update", uploadReviewPhoto, updateReviewController);
+// Update review (with optional photos)
+router.put("/:review_id/update", uploadMultipleReviewPhotos, updateReviewController);
+
+// Review photo routes
+router.get("/:review_id/photos", getReviewPhotosController); // Get all photos for a review
+router.post("/:review_id/photos", uploadReviewPhoto, addReviewPhotoController); // Add a photo to a review
+router.delete("/photos/:photo_id", deleteReviewPhotoController); // Delete a photo from a review
 
 module.exports = router;

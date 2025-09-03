@@ -22,7 +22,21 @@ const fileFilter = (req, file, cb) => {
 // Multer 미들웨어 생성
 const upload = multer({
   storage: storage,
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: fileFilter
+});
+
+// 단일 파일 업로드를 위한 미들웨어
+const singleUpload = multer({
+  storage: storage,
   limits: { fileSize: MAX_FILE_SIZE, files: 1 },
+  fileFilter: fileFilter
+});
+
+// 다중 파일 업로드를 위한 미들웨어 (최대 5개)
+const multiUpload = multer({
+  storage: storage,
+  limits: { fileSize: MAX_FILE_SIZE, files: 5 },
   fileFilter: fileFilter
 });
 
@@ -68,6 +82,83 @@ const uploadProfileImage = (req, res, next) => {
   });
 };
 
+// 단일 리뷰 사진 업로드 미들웨어 (하나의 파일만 업로드)
+const uploadReviewPhoto = (req, res, next) => {
+  singleUpload.fields([
+    { name: 'photo', maxCount: 1 },
+    { name: 'image', maxCount: 1 }
+  ])(req, res, (err) => {
+    if (err) {
+      return handleUploadError(err, res);
+    }
+    
+    // 파일이 업로드된 경우 req.file 또는 req.files에 파일 정보가 들어감
+    // 단일 파일을 처리하기 위해 첫 번째 파일을 req.file에 할당
+    if (req.files) {
+      const fileField = Object.keys(req.files)[0];
+      if (fileField && req.files[fileField] && req.files[fileField][0]) {
+        req.file = req.files[fileField][0];
+      }
+    }
+    
+    next();
+  });
+};
+
+// 다중 리뷰 사진 업로드 미들웨어 (최대 5개)
+const uploadMultipleReviewPhotos = (req, res, next) => {
+  // 'photos[]' 또는 'images' 필드 이름으로 업로드된 파일 처리
+  multiUpload.fields([
+    { name: 'photos', maxCount: 5 },
+    { name: 'images', maxCount: 5 }
+  ])(req, res, (err) => {
+    if (err) {
+      return handleUploadError(err, res);
+    }
+    
+    // 모든 파일을 req.files에 통합
+    if (req.files) {
+      req.files = [].concat(
+        req.files['photos'] || [],
+        req.files['images'] || []
+      );
+    }
+    
+    next();
+  });
+};
+
+// 에러 처리 공통 함수
+const handleUploadError = (err, res) => {
+  logger.error('파일 업로드 오류:', err);
+  
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      success: false,
+      message: '파일 크기가 너무 큽니다. 최대 5MB까지 업로드 가능합니다.'
+    });
+  }
+  
+  if (err.code === 'LIMIT_FILE_COUNT') {
+    return res.status(400).json({
+      success: false,
+      message: '최대 5개의 파일만 업로드 가능합니다.'
+    });
+  }
+  
+  if (err.message.includes('지원하지 않는 파일 형식')) {
+    return res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+  
+  return res.status(500).json({
+    success: false,
+    message: '파일 업로드 중 오류가 발생했습니다.'
+  });
+};
+
 // ETag 생성 함수
 const generateETag = (data) => {
   const hash = createHash('md5').update(data).digest('hex');
@@ -99,53 +190,13 @@ const setCacheHeaders = (req, res, data, lastModified) => {
   }
 };
 
-// 리뷰 사진 업로드 미들웨어 (handles both 'photo' and 'image' field names)
-const uploadReviewPhoto = (req, res, next) => {
-  // Use a custom file filter that's more permissive with field names
-  const customUpload = multer({
-    storage: storage,
-    limits: { fileSize: MAX_FILE_SIZE, files: 1 },
-    fileFilter: (req, file, cb) => {
-      // Accept any file that passes the type check
-      fileFilter(req, file, cb);
-    }
-  }).any(); // Accept any field name
-  
-  customUpload(req, res, (err) => {
-    if (err) {
-      logger.error('리뷰 사진 업로드 오류:', err);
-      
-      // 파일 크기 초과 오류 처리
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(413).json({
-          success: false,
-          message: '파일 크기가 너무 큽니다. 최대 5MB까지 업로드 가능합니다.'
-        });
-      }
-      
-      // 파일 형식 오류 처리
-      if (err.message.includes('지원하지 않는 파일 형식')) {
-        return res.status(400).json({
-          success: false,
-          message: err.message
-        });
-      }
-      
-      // 기타 오류 처리
-      return res.status(400).json({
-        success: false,
-        message: '파일 업로드 중 오류가 발생했습니다.'
-      });
-    }
-    
-    next();
-  });
-};
-
 // Export the upload middleware and utilities
 module.exports = {
-  uploadMiddleware: upload.single('file'),
+  uploadMiddleware: singleUpload.single('file'),
   uploadReviewPhoto,
+  uploadMultipleReviewPhotos,
+  uploadProfileImage,
+  generateETag,
   setCacheHeaders,
   upload // Exporting the base upload middleware for flexibility
 };
