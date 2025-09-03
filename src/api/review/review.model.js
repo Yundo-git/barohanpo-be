@@ -4,25 +4,27 @@ const reviewModel = {
   findAll: async () => {
     try {
       const [reviews] = await db.query("SELECT * FROM reviews");
-      
+
       // Fetch photos for each review that has a photo_id
-      const reviewsWithPhotos = await Promise.all(reviews.map(async (review) => {
-        if (review.review_photo_id) {
-          const [photos] = await db.query(
-            "SELECT * FROM review_photos WHERE review_photo_id = ?", 
-            [review.review_photo_id]
-          );
+      const reviewsWithPhotos = await Promise.all(
+        reviews.map(async (review) => {
+          if (review.review_photo_id) {
+            const [photos] = await db.query(
+              "SELECT * FROM review_photos WHERE review_photo_id = ?",
+              [review.review_photo_id]
+            );
+            return {
+              ...review,
+              photos: photos || [],
+            };
+          }
           return {
             ...review,
-            photos: photos || []
+            photos: [],
           };
-        }
-        return {
-          ...review,
-          photos: []
-        };
-      }));
-      
+        })
+      );
+
       return reviewsWithPhotos;
     } catch (error) {
       console.error("Error in reviewModel.findAll:", error);
@@ -32,26 +34,31 @@ const reviewModel = {
   //특정 user_id로 review 조회
   findById: async (user_id) => {
     try {
-      const [reviews] = await db.query("SELECT * FROM reviews WHERE user_id = ?", [user_id]);
-      
+      const [reviews] = await db.query(
+        "SELECT * FROM reviews WHERE user_id = ?",
+        [user_id]
+      );
+
       // Fetch photos for each review that has a photo_id
-      const reviewsWithPhotos = await Promise.all(reviews.map(async (review) => {
-        if (review.review_photo_id) {
-          const [photos] = await db.query(
-            "SELECT * FROM review_photos WHERE review_photo_id = ?", 
-            [review.review_photo_id]
-          );
+      const reviewsWithPhotos = await Promise.all(
+        reviews.map(async (review) => {
+          if (review.review_photo_id) {
+            const [photos] = await db.query(
+              "SELECT * FROM review_photos WHERE review_photo_id = ?",
+              [review.review_photo_id]
+            );
+            return {
+              ...review,
+              photos: photos || [],
+            };
+          }
           return {
             ...review,
-            photos: photos || []
+            photos: [],
           };
-        }
-        return {
-          ...review,
-          photos: []
-        };
-      }));
-      
+        })
+      );
+
       return reviewsWithPhotos;
     } catch (error) {
       console.error("Error in reviewModel.findById:", error);
@@ -75,25 +82,27 @@ const reviewModel = {
   findFiveStarReview: async () => {
     try {
       const [reviews] = await db.query("SELECT * FROM reviews WHERE score = 5");
-      
+
       // Fetch photos for each 5-star review that has a photo_id
-      const reviewsWithPhotos = await Promise.all(reviews.map(async (review) => {
-        if (review.review_photo_id) {
-          const [photos] = await db.query(
-            "SELECT * FROM review_photos WHERE review_photo_id = ?", 
-            [review.review_photo_id]
-          );
+      const reviewsWithPhotos = await Promise.all(
+        reviews.map(async (review) => {
+          if (review.review_photo_id) {
+            const [photos] = await db.query(
+              "SELECT * FROM review_photos WHERE review_photo_id = ?",
+              [review.review_photo_id]
+            );
+            return {
+              ...review,
+              photos: photos || [],
+            };
+          }
           return {
             ...review,
-            photos: photos || []
+            photos: [],
           };
-        }
-        return {
-          ...review,
-          photos: []
-        };
-      }));
-      
+        })
+      );
+
       return reviewsWithPhotos;
     } catch (error) {
       console.error("Error in reviewModel.findFiveStarReview:", error);
@@ -101,7 +110,48 @@ const reviewModel = {
     }
   },
 
-  createReview: async function(user_id, p_id, score, comment, book_id, book_date, book_time) {
+  findPharmacyReview: async (pharmacyId) => {
+    try {
+      const [reviews] = await db.query("SELECT * FROM reviews WHERE p_id = ?", [
+        pharmacyId,
+      ]);
+
+      // Fetch photos for each review that has a photo_id
+      const reviewsWithPhotos = await Promise.all(
+        reviews.map(async (review) => {
+          if (review.review_photo_id) {
+            const [photos] = await db.query(
+              "SELECT * FROM review_photos WHERE review_photo_id = ?",
+              [review.review_photo_id]
+            );
+            return {
+              ...review,
+              photos: photos || [],
+            };
+          }
+          return {
+            ...review,
+            photos: [],
+          };
+        })
+      );
+
+      return reviewsWithPhotos;
+    } catch (error) {
+      console.error("Error in reviewModel.findPharmacyReview:", error);
+      throw error;
+    }
+  },
+
+  createReview: async function (
+    user_id,
+    p_id,
+    score,
+    comment,
+    book_id,
+    book_date,
+    book_time
+  ) {
     try {
       const [result] = await db.query(
         "INSERT INTO reviews (user_id, p_id, score, comment, book_id, book_date, book_time) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -114,19 +164,19 @@ const reviewModel = {
     }
   },
 
-  createReviewPhoto: async function(review_id, photo_blob) {
+  createReviewPhoto: async function (review_id, photo_blob) {
     try {
       const [result] = await db.query(
         "INSERT INTO review_photos (review_id, review_photo_blob) VALUES (?, ?)",
         [review_id, photo_blob]
       );
-      
+
       // Update the review with the new photo_id
       await db.query(
         "UPDATE reviews SET review_photo_id = ? WHERE review_id = ?",
         [result.insertId, review_id]
       );
-      
+
       return result.insertId;
     } catch (error) {
       console.error("Error in reviewModel.createReviewPhoto:", error);
@@ -134,7 +184,7 @@ const reviewModel = {
     }
   },
 
-  updateReview: async function(id, review, rating) {
+  updateReview: async function (id, review, rating) {
     try {
       const [rows] = await db.query(
         "UPDATE review SET review = ?, rating = ? WHERE id = ?",
@@ -147,7 +197,7 @@ const reviewModel = {
     }
   },
 
-  deleteReview: async function(id) {
+  deleteReview: async function (id) {
     try {
       const [rows] = await db.query("DELETE FROM reviews WHERE id = ?", [id]);
       return rows[0];

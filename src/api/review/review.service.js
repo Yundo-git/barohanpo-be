@@ -41,6 +41,16 @@ const fetchFiveStarReview = async () => {
   }
 };
 
+const fetchPharmacyReview = async (pharmacyId) => {
+  try {
+    const rows = await reviewModel.findPharmacyReview(pharmacyId);
+    return rows;
+  } catch (error) {
+    console.error("Error in reviewService.fetchPharmacyReview:", error);
+    throw error;
+  }
+};
+
 const createReviewService = async (
   user_id,
   p_id,
@@ -54,7 +64,7 @@ const createReviewService = async (
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
-    
+
     // Create the review first
     const reviewId = await reviewModel.createReview(
       user_id,
@@ -65,12 +75,12 @@ const createReviewService = async (
       book_date,
       book_time
     );
-    
+
     // If there's a photo, save it and update the review with the photo ID
     if (photo_blob) {
       await reviewModel.createReviewPhoto(reviewId, photo_blob);
     }
-    
+
     await connection.commit();
     return { reviewId };
   } catch (error) {
@@ -109,5 +119,6 @@ module.exports = {
   createReviewService,
   updateReview,
   deleteReview,
+  fetchPharmacyReview,
   fetchFiveStarReview,
 };

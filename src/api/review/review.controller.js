@@ -5,6 +5,7 @@ const {
   createReviewService,
   fetchFiveStarReview,
   updateReview,
+  fetchPharmacyReview,
   deleteReview,
 } = require("./review.service");
 
@@ -57,13 +58,26 @@ const getFiveStarReview = async (req, res) => {
   }
 };
 
+//pharmacyId로 리뷰 조회
+const getPharmacyReview = async (req, res) => {
+  const { pharmacyId } = req.params;
+  try {
+    const rows = await fetchPharmacyReview(pharmacyId);
+    res.json({ success: true, count: rows.length, data: rows });
+  } catch (error) {
+    console.error("Error in reviewController.getPharmacyReview:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 //리뷰 생성
 const createReviewController = async (req, res) => {
-  const { user_id, book_id, p_id, score, comment, book_date, book_time } = req.body;
-  
+  const { user_id, book_id, p_id, score, comment, book_date, book_time } =
+    req.body;
+
   try {
     let photo_blob = null;
-    
+
     // Check if there's an uploaded file (handle both single and multiple file uploads)
     if (req.file) {
       // Handle single file upload
@@ -72,7 +86,7 @@ const createReviewController = async (req, res) => {
       // Handle multiple files (take the first one)
       photo_blob = req.files[0].buffer;
     }
-    
+
     const result = await createReviewService(
       user_id,
       p_id,
@@ -83,17 +97,17 @@ const createReviewController = async (req, res) => {
       book_time,
       photo_blob
     );
-    
-    res.status(201).json({ 
-      success: true, 
-      message: 'Review created successfully',
-      data: result 
+
+    res.status(201).json({
+      success: true,
+      message: "Review created successfully",
+      data: result,
     });
   } catch (error) {
     console.error("Error in reviewController.createReview:", error);
-    res.status(500).json({ 
-      success: false, 
-      error: error.message || 'Failed to create review' 
+    res.status(500).json({
+      success: false,
+      error: error.message || "Failed to create review",
     });
   }
 };
@@ -128,6 +142,7 @@ module.exports = {
   getReviewById,
   getReviewId,
   getFiveStarReview,
+  getPharmacyReview,
   createReviewController,
   updateReviewController,
   deleteReviewController,
