@@ -22,6 +22,8 @@ router.get("/:pharmacyId/pharmacyReview", getPharmacyReview);
 // 리뷰 생성 (with optional photo)
 router.post("/", uploadReviewPhoto, createReviewController);
 router.put("/:user_id", updateReviewController);
-router.delete("/:user_id", deleteReviewController);
+
+//리뷰 삭제
+router.delete("/:review_id/del", deleteReviewController);
 
 module.exports = router;

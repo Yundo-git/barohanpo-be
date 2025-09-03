@@ -102,9 +102,9 @@ const updateReview = async (id, review, rating) => {
   }
 };
 
-const deleteReview = async (id) => {
+const deleteReview = async (review_id) => {
   try {
-    const result = await reviewModel.deleteReview(id);
+    const result = await reviewModel.deleteReview(review_id);
     return result;
   } catch (error) {
     console.error("Error in reviewService.deleteReview:", error);

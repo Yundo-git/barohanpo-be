@@ -127,9 +127,9 @@ const updateReviewController = async (req, res) => {
 
 //리뷰 삭제
 const deleteReviewController = async (req, res) => {
-  const { id } = req.params;
+  const { review_id } = req.params;
   try {
-    const result = await deleteReview(id);
+    const result = await deleteReview(review_id);
     res.json({ success: true, data: result });
   } catch (error) {
     console.error("Error in reviewController.deleteReview:", error);

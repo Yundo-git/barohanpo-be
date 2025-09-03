@@ -197,13 +197,25 @@ const reviewModel = {
     }
   },
 
-  deleteReview: async function (id) {
+  deleteReview: async function (review_id) {
+    const connection = await db.getConnection();
     try {
-      const [rows] = await db.query("DELETE FROM reviews WHERE id = ?", [id]);
-      return rows[0];
+      await connection.beginTransaction();
+      
+      // 1. Delete related review photos first
+      await connection.query("DELETE FROM review_photos WHERE review_id = ?", [review_id]);
+      
+      // 2. Delete the review
+      const [result] = await connection.query("DELETE FROM reviews WHERE review_id = ?", [review_id]);
+      
+      await connection.commit();
+      return result.affectedRows > 0;
     } catch (error) {
+      await connection.rollback();
       console.error("Error in reviewModel.deleteReview:", error);
       throw error;
+    } finally {
+      connection.release();
     }
   },
 };
