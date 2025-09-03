@@ -184,16 +184,67 @@ const reviewModel = {
     }
   },
 
-  updateReview: async function (id, review, rating) {
+  updateReview: async function (review_id, score, comment, photo_blob = null) {
+    const connection = await db.getConnection();
     try {
-      const [rows] = await db.query(
-        "UPDATE review SET review = ?, rating = ? WHERE id = ?",
-        [review, rating, id]
+      await connection.beginTransaction();
+
+      // 1. Check if there's an existing photo for this review
+      const [existingReview] = await connection.query(
+        "SELECT review_photo_id FROM reviews WHERE review_id = ?",
+        [review_id]
       );
-      return rows[0];
+
+      // 2. Update the review text and rating
+      const [result] = await connection.query(
+        "UPDATE reviews SET score = ?, comment = ? WHERE review_id = ?",
+        [score, comment, review_id]
+      );
+
+      // 3. Handle photo updates
+      if (photo_blob) {
+        // If there's a new photo, update or insert it
+        if (existingReview[0]?.review_photo_id) {
+          // Update existing photo
+          await connection.query(
+            "UPDATE review_photos SET review_photo_blob = ? WHERE review_photo_id = ?",
+            [photo_blob, existingReview[0].review_photo_id]
+          );
+        } else {
+          // Insert new photo
+          const [photoResult] = await connection.query(
+            "INSERT INTO review_photos (review_id, review_photo_blob) VALUES (?, ?)",
+            [review_id, photo_blob]
+          );
+
+          // Update the review with the new photo_id
+          await connection.query(
+            "UPDATE reviews SET review_photo_id = ? WHERE review_id = ?",
+            [photoResult.insertId, review_id]
+          );
+        }
+      } else if (existingReview[0]?.review_photo_id) {
+        // If no new photo is provided but there was an existing photo, remove it
+        await connection.query(
+          "DELETE FROM review_photos WHERE review_photo_id = ?",
+          [existingReview[0].review_photo_id]
+        );
+        
+        // Clear the photo reference from the review
+        await connection.query(
+          "UPDATE reviews SET review_photo_id = NULL WHERE review_id = ?",
+          [review_id]
+        );
+      }
+
+      await connection.commit();
+      return { success: true, affectedRows: result.affectedRows };
     } catch (error) {
+      await connection.rollback();
       console.error("Error in reviewModel.updateReview:", error);
       throw error;
+    } finally {
+      connection.release();
     }
   },
 
@@ -201,13 +252,18 @@ const reviewModel = {
     const connection = await db.getConnection();
     try {
       await connection.beginTransaction();
-      
+
       // 1. Delete related review photos first
-      await connection.query("DELETE FROM review_photos WHERE review_id = ?", [review_id]);
-      
+      await connection.query("DELETE FROM review_photos WHERE review_id = ?", [
+        review_id,
+      ]);
+
       // 2. Delete the review
-      const [result] = await connection.query("DELETE FROM reviews WHERE review_id = ?", [review_id]);
-      
+      const [result] = await connection.query(
+        "DELETE FROM reviews WHERE review_id = ?",
+        [review_id]
+      );
+
       await connection.commit();
       return result.affectedRows > 0;
     } catch (error) {

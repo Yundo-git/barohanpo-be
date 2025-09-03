@@ -114,14 +114,42 @@ const createReviewController = async (req, res) => {
 
 //리뷰 수정
 const updateReviewController = async (req, res) => {
-  const { id } = req.params;
-  const { review, rating } = req.body;
+  const { review_id } = req.params;
+  const { score, comment } = req.body;
+  console.log("review_id", review_id);
+  console.log("score", score);
+  console.log("comment", comment);
   try {
-    const result = await updateReview(id, review, rating);
-    res.json({ success: true, data: result });
+    let photo_blob = null;
+
+    // Check if there's an uploaded file (handle both single and multiple file uploads)
+    if (req.file) {
+      // Handle single file upload
+      photo_blob = req.file.buffer;
+    } else if (req.files && req.files.length > 0) {
+      // Handle multiple files (take the first one)
+      photo_blob = req.files[0].buffer;
+    }
+
+    const result = await updateReview(review_id, score, comment, photo_blob);
+
+    if (result.affectedRows > 0) {
+      res.json({
+        success: true,
+        message: "리뷰가 성공적으로 수정되었습니다.",
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "리뷰를 찾을 수 없습니다.",
+      });
+    }
   } catch (error) {
     console.error("Error in reviewController.updateReview:", error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message || "리뷰 수정 중 오류가 발생했습니다.",
+    });
   }
 };
 

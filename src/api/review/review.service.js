@@ -92,9 +92,14 @@ const createReviewService = async (
   }
 };
 
-const updateReview = async (id, review, rating) => {
+const updateReview = async (id, score, comment, photo_blob = null) => {
   try {
-    const result = await reviewModel.updateReview(id, review, rating);
+    const result = await reviewModel.updateReview(
+      id,
+      score,
+      comment,
+      photo_blob
+    );
     return result;
   } catch (error) {
     console.error("Error in reviewService.updateReview:", error);
