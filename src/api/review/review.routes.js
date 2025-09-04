@@ -1,5 +1,8 @@
 const express = require("express");
-const { uploadReviewPhoto, uploadMultipleReviewPhotos } = require("../../middlewares/upload.middleware");
+const {
+  uploadReviewPhoto,
+  uploadMultipleReviewPhotos,
+} = require("../../middlewares/upload.middleware");
 const {
   getAllReviews,
   getReviewById,
@@ -11,7 +14,7 @@ const {
   getPharmacyReview,
   getReviewPhotosController,
   addReviewPhotoController,
-  deleteReviewPhotoController
+  deleteReviewPhotoController,
 } = require("./review.controller");
 
 const router = express.Router();
@@ -30,7 +33,11 @@ router.post("/", uploadReviewPhoto, createReviewController);
 router.delete("/:review_id/del", deleteReviewController);
 
 // Update review (with optional photos)
-router.put("/:review_id/update", uploadMultipleReviewPhotos, updateReviewController);
+router.put(
+  "/:review_id/update",
+  uploadMultipleReviewPhotos,
+  updateReviewController
+);
 
 // Review photo routes
 router.get("/:review_id/photos", getReviewPhotosController); // Get all photos for a review

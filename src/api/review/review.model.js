@@ -200,6 +200,7 @@ const reviewModel = {
 
   // Add a new photo to a review
   addReviewPhoto: async function (review_id, photo_blob) {
+    // console.log("in model", photo_blob.length);
     try {
       const [result] = await db.query(
         "INSERT INTO review_photos (review_id, review_photo_blob) VALUES (?, ?)",
@@ -225,60 +226,85 @@ const reviewModel = {
     }
   },
 
-  updateReview: async function (review_id, score, comment, photo_blobs = []) {
+  updateReview: async function (
+    review_id,
+    score,
+    comment,
+    { newPhotos = [], existingPhotoIds = [], hasPhotoChanges = false } = {}
+  ) {
     const connection = await db.getConnection();
     try {
       await connection.beginTransaction();
 
-      // 1. 리뷰 텍스트 업데이트
+      // 1. Update review text and score
       const [result] = await connection.query(
         "UPDATE reviews SET score = ?, comment = ? WHERE review_id = ?",
         [score, comment, review_id]
       );
 
-      // 2. 기존 사진 조회
-      const [existingPhotos] = await connection.query(
-        "SELECT review_photo_id FROM review_photos WHERE review_id = ? ",
-        [review_id]
-      );
+      // 2. Process photo updates only if there are changes
+      if (hasPhotoChanges) {
+        // 3. Get current photos
+        const [currentPhotos] = await connection.query(
+          "SELECT review_photo_id FROM review_photos WHERE review_id = ?",
+          [review_id]
+        );
 
-      // 3. 사진 업데이트
-      if (photo_blobs && photo_blobs.length > 0) {
-        // 기존 사진 삭제
-        if (existingPhotos.length > 0) {
-          await connection.query(
-            "DELETE FROM review_photos WHERE review_id = ?",
-            [review_id]
-          );
-        }
-
-        // 새 사진 추가
-        let firstPhotoId = null;
-        for (const photo_blob of photo_blobs) {
-          const [photoResult] = await connection.query(
-            "INSERT INTO review_photos (review_id, review_photo_blob) VALUES (?, ?)",
-            [review_id, photo_blob]
-          );
-
-          // 첫 번째 사진 ID 저장
-          if (!firstPhotoId) {
-            firstPhotoId = photoResult.insertId;
+        // 4. Delete photos that are not in the existingPhotoIds list
+        if (currentPhotos.length > 0) {
+          if (existingPhotoIds.length > 0) {
+            // Delete only the photos that are not in the existingPhotoIds list
+            const placeholders = existingPhotoIds.map(() => "?").join(",");
+            const params = [review_id, ...existingPhotoIds];
+            await connection.query(
+              `DELETE FROM review_photos WHERE review_id = ? AND review_photo_id NOT IN (${placeholders})`,
+              params
+            );
+          } else if (existingPhotoIds.length === 0 && newPhotos.length > 0) {
+            // If no existing photo IDs are provided and there are new photos, delete all existing photos
+            await connection.query(
+              "DELETE FROM review_photos WHERE review_id = ?",
+              [review_id]
+            );
           }
         }
 
-        // 리뷰 테이블에 첫 번째 사진 ID 업데이트
-        if (firstPhotoId) {
-          await connection.query(
-            "UPDATE reviews SET review_photo_id = ? WHERE review_id = ?",
-            [firstPhotoId, review_id]
-          );
+        // 5. Add new photos if any
+        let firstPhotoId = null;
+        if (newPhotos.length > 0) {
+          for (const photo_blob of newPhotos) {
+            const [photoResult] = await connection.query(
+              "INSERT INTO review_photos (review_id, review_photo_blob) VALUES (?, ?)",
+              [review_id, photo_blob]
+            );
+
+            // Save the first photo ID
+            if (!firstPhotoId) {
+              firstPhotoId = photoResult.insertId;
+            }
+          }
         }
-      } else if (existingPhotos.length > 0) {
-        // If no new photos are provided but there were existing ones, remove them all
-        await connection.query(
-          "DELETE FROM review_photos WHERE review_id = ?",
-          [review_id]
-        );
+
+        // 6. Update the review's main photo ID if needed
+        if (existingPhotoIds.length > 0 || newPhotos.length > 0) {
+          let newMainPhotoId = null;
+
+          // If we have existing photos, use the first one as main
+          if (existingPhotoIds.length > 0) {
+            newMainPhotoId = existingPhotoIds[0];
+          }
+          // Otherwise, if we have new photos, use the first new one
+          else if (firstPhotoId) {
+            newMainPhotoId = firstPhotoId;
+          }
+
+          if (newMainPhotoId) {
+            await connection.query(
+              "UPDATE reviews SET review_photo_id = ? WHERE review_id = ?",
+              [newMainPhotoId, review_id]
+            );
+          }
+        }
       }
 
       await connection.commit();

@@ -115,12 +115,12 @@ const createReviewController = async (req, res) => {
 // Get all photos for a review
 const getReviewPhotosController = async (req, res) => {
   const { review_id } = req.params;
-  
+
   try {
     const photos = await getReviewPhotos(review_id);
     res.json({
       success: true,
-      data: photos
+      data: photos,
     });
   } catch (error) {
     console.error("Error in reviewController.getReviewPhotos:", error);
@@ -134,21 +134,21 @@ const getReviewPhotosController = async (req, res) => {
 // Add a photo to a review
 const addReviewPhotoController = async (req, res) => {
   const { review_id } = req.params;
-  
+
   try {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        error: "사진 파일이 필요합니다."
+        error: "사진 파일이 필요합니다.",
       });
     }
-    
+
     const photoId = await addReviewPhoto(review_id, req.file.buffer);
-    
+
     res.status(201).json({
       success: true,
       photo_id: photoId,
-      message: "리뷰 사진이 추가되었습니다."
+      message: "리뷰 사진이 추가되었습니다.",
     });
   } catch (error) {
     console.error("Error in reviewController.addReviewPhoto:", error);
@@ -162,12 +162,12 @@ const addReviewPhotoController = async (req, res) => {
 // Delete a photo from a review
 const deleteReviewPhotoController = async (req, res) => {
   const { photo_id } = req.params;
-  
+
   try {
     await deleteReviewPhoto(photo_id);
     res.json({
       success: true,
-      message: "리뷰 사진이 삭제되었습니다."
+      message: "리뷰 사진이 삭제되었습니다.",
     });
   } catch (error) {
     console.error("Error in reviewController.deleteReviewPhoto:", error);
@@ -181,8 +181,15 @@ const deleteReviewPhotoController = async (req, res) => {
 // Update a review with multiple photos
 const updateReviewController = async (req, res) => {
   const { review_id } = req.params;
-  const { score, comment } = req.body;
-  
+  const { score, comment, existing_photo_ids } = req.body;
+
+  console.log("=== Review Update Request ===");
+  console.log(`Review ID: ${review_id}`);
+  console.log(`Score: ${score}, Comment: ${comment}`);
+  console.log("Existing Photo IDs:", existing_photo_ids);
+  // console.log("Request Body:", JSON.stringify(req.body, null, 2));
+  // console.log('Files:', req.files ? `Received ${req.files.length} files` : 'No files received');
+
   try {
     // Handle multiple file uploads
     let photo_blobs = [];
@@ -191,7 +198,7 @@ const updateReviewController = async (req, res) => {
       photo_blobs = [req.file.buffer];
     } else if (req.files && req.files.length > 0) {
       // Multiple file uploads
-      photo_blobs = req.files.map(file => file.buffer);
+      photo_blobs = req.files.map((file) => file.buffer);
     }
 
     const result = await updateReview(review_id, score, comment, photo_blobs);
@@ -239,5 +246,5 @@ module.exports = {
   deleteReviewController,
   getReviewPhotosController,
   addReviewPhotoController,
-  deleteReviewPhotoController
+  deleteReviewPhotoController,
 };

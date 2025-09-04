@@ -94,12 +94,19 @@ const createReviewService = async (
 
 const updateReview = async (id, score, comment, photo_blob = null) => {
   try {
+    console.log("=== Updating Review ===");
+    console.log(`Review ID: ${id}`);
+    console.log(`Score: ${score}, Comment: ${comment}`);
+    // console.log('Photo Blobs:', photo_blob ? `Received ${Array.isArray(photo_blob) ? photo_blob.length : 1} photo(s)` : 'No new photos');
+
     const result = await reviewModel.updateReview(
       id,
       score,
       comment,
       photo_blob
     );
+
+    console.log("Update result:", result);
     return result;
   } catch (error) {
     console.error("Error in reviewService.updateReview:", error);
@@ -161,5 +168,5 @@ module.exports = {
   deleteReview,
   getReviewPhotos,
   addReviewPhoto,
-  deleteReviewPhoto
+  deleteReviewPhoto,
 };
