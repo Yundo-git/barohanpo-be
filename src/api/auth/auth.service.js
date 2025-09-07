@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const TokenService = require("../../services/TokenService");
 const UserProfilePhoto = require("../profile/userProfilePhoto.Model");
+const pool = require("../../config/database");
 const {
   JWT_ACCESS_SECRET,
   JWT_REFRESH_SECRET,
@@ -99,6 +100,7 @@ const signup = async (email, password, name, nickname, phone) => {
  * @throws {Error} If login fails with message indicating the reason
  */
 const login = async (email, password) => {
+  console.log("[Auth Service] Login attempt for email:", email);
   const correlationId = Math.random().toString(36).substring(2, 10);
   logger.debug(`[${correlationId}] Login attempt for email: ${email}`, {
     hasEmail: !!email,
@@ -145,7 +147,7 @@ const login = async (email, password) => {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
     logger.debug(`[${correlationId}] Generating tokens`, {
-      userId: user.id,
+      userId: user.user_id,
       jtiLength: jti.length,
       expiresAt: expiresAt.toISOString(),
     });
@@ -175,7 +177,7 @@ const login = async (email, password) => {
 
     // 7. Store refresh token in database
     await TokenService.storeRefreshToken({
-      userId: user.id,
+      userId: user.user_id,
       refreshToken,
       jti,
       expiresAt,
@@ -184,7 +186,7 @@ const login = async (email, password) => {
     // 8. Return user data and tokens
     const response = {
       user: {
-        user_id: user.id,
+        user_id: user.user_id,
         email: user.email,
         name: user.name,
         role: user.role,
@@ -475,7 +477,7 @@ const getCurrentUser = async (userId) => {
 
   try {
     // Get user from database
-    const [users] = await db.query(
+    const [users] = await pool.query(
       "SELECT id, email, name, phone, role, created_at FROM users WHERE id = ?",
       [userId]
     );

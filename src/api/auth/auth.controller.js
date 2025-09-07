@@ -219,6 +219,7 @@ const signup = async (req, res) => {
  *     security: []
  */
 const login = async (req, res) => {
+  console.log("[Auth Controller] Login attempt for email:", req.body.email);
   try {
     const { email, password } = req.body;
 

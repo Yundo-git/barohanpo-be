@@ -29,7 +29,7 @@ const authModel = {
 
       // Fetch the created user
       const [user] = await pool.query(
-        `SELECT user_id as id, email, name, nickname, phone, role, created_at 
+        `SELECT user_id, email, name, nickname, phone, role, created_at 
          FROM users WHERE user_id = ?`,
         [rows.insertId]
       );
@@ -55,7 +55,7 @@ const authModel = {
   findByEmail: async (email) => {
     try {
       const [rows] = await pool.query(
-        `SELECT user_id as id, email, password, name, nickname, phone, role, created_at
+        `SELECT user_id, email, password, name, nickname, phone, role, created_at
          FROM users 
          WHERE email = ?`,
         [email]
@@ -75,7 +75,7 @@ const authModel = {
   findById: async (userId) => {
     try {
       const [rows] = await pool.query(
-        `SELECT user_id as id, email, name, nickname, phone, role, created_at
+        `SELECT user_id, email, name, nickname, phone, role, created_at
          FROM users 
          WHERE user_id = ?`,
         [userId]
@@ -120,7 +120,7 @@ const authModel = {
   findRefreshTokenByJti: async (jti) => {
     try {
       const [rows] = await pool.query(
-        `SELECT id, user_id as userId, token, jti, expires_at as expiresAt, 
+        `SELECT  user_id as userId, token, jti, expires_at as expiresAt, 
                 revoked, created_at as createdAt
          FROM refresh_tokens 
          WHERE jti = ?`,
