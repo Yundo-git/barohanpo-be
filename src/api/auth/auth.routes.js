@@ -24,6 +24,7 @@ router.get("/me", isAuthenticated, getCurrentUser);
  * @swagger
  * tags:
  *   name: Auth
+ * 
  *   description: 사용자 인증 관련 API
  */
 
