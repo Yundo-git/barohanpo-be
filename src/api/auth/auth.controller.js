@@ -96,7 +96,7 @@ const signup = async (req, res) => {
   try {
     const { email, password, name, nickname, phone } = req.body;
 
-    // Input validation
+    // 입력 유효성 검사
     if (!email || !password || !name || !phone) {
       return sendError(res, "All fields are required", "VALIDATION_ERROR");
     }
@@ -109,7 +109,7 @@ const signup = async (req, res) => {
       phone
     );
 
-    // Set HTTP-only cookie for refresh token
+    // 리프레시 토큰을 위한 HTTP-only 쿠키 설정
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -118,7 +118,7 @@ const signup = async (req, res) => {
       path: "/api/auth/refresh-token",
     });
 
-    // Return user data and access token
+    // 사용자 데이터와 액세스 토큰 반환
     return res.status(201).json({
       success: true,
       data: {
@@ -127,7 +127,7 @@ const signup = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error in authController.signup:", error);
+    console.error("회원가입 처리 중 오류 발생:", error);
 
     if (error.message.includes("already in use")) {
       return sendError(res, "Email already in use", "VALIDATION_ERROR", {
@@ -494,10 +494,10 @@ const getCurrentUser = async (req, res) => {
  */
 const logout = async (req, res) => {
   try {
-    // Get the refresh token from cookies
+    // 쿠키에서 리프레시 토큰 가져오기
     const refreshToken = req.cookies?.refreshToken;
 
-    // Clear the refresh token cookie
+    // 리프레시 토큰 쿠키 삭제
     res.clearCookie("refreshToken", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -505,36 +505,36 @@ const logout = async (req, res) => {
       path: "/api/auth/refresh-token",
     });
 
-    // Invalidate the refresh token if it exists
+    // 리프레시 토큰이 존재하면 무효화
     if (refreshToken) {
       try {
-        // Verify the token to get the JTI
+        // JTI를 얻기 위해 토큰 검증
         const decoded = jwt.verify(
           refreshToken,
           process.env.JWT_REFRESH_SECRET,
           { ignoreExpiration: true } // We still want to decode even if expired
         );
 
-        // If we have a JTI, invalidate just this token
+        // JTI가 있으면 해당 토큰만 무효화
         if (decoded?.jti) {
           await authService.invalidateRefreshToken(decoded.jti);
         } else if (req.user?.user_id) {
-          // If we can't get the JTI but have user ID, invalidate all user's tokens
+          // JTI를 가져올 수 없지만 사용자 ID가 있으면 해당 사용자의 모든 토큰 무효화
           await authService.logout(req.user.user_id);
         }
       } catch (error) {
-        // Log the error but don't fail the logout
+        // 오류를 기록하지만 로그아웃은 계속 진행
         console.error("Error during token invalidation:", error.message);
       }
     }
 
-    // Always return success
+    // 항상 성공 응답 반환
     return res.status(200).json({
       success: true,
       message: "Successfully logged out",
     });
   } catch (error) {
-    console.error("Unexpected error during logout:", error);
+    console.error("로그아웃 중 예기치 않은 오류:", error);
     return res.status(200).json({
       success: true,
       message: "Successfully logged out",
@@ -554,7 +554,7 @@ const changeNick = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("Error in authController.changeNick:", error);
+    console.error("닉네임 변경 중 오류 발생:", error);
     return res.status(500).json({
       success: false,
       error: error.message,

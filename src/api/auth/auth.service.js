@@ -32,7 +32,7 @@ const logger = require("../../utils/logger");
  */
 const signup = async (email, password, name, nickname, phone) => {
   try {
-    // Input validation
+    // 입력 유효성 검사
     if (!email || !password || !name || !phone) {
       throw new Error("All fields are required");
     }
@@ -41,11 +41,11 @@ const signup = async (email, password, name, nickname, phone) => {
       throw new Error("Password must be at least 8 characters long");
     }
 
-    // Hash password
+    // 비밀번호 해싱
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user with hashed password
+    // 해시된 비밀번호로 사용자 생성
     const user = await authModel.signup(
       email,
       hashedPassword,
@@ -55,7 +55,7 @@ const signup = async (email, password, name, nickname, phone) => {
     );
 
     try {
-      // Try to set default profile image from URL if available
+      // 가능한 경우 URL에서 기본 프로필 이미지 설정 시도
       const frontendBaseUrl = process.env.FRONT_PUBLIC_BASE_URL;
       if (frontendBaseUrl) {
         const defaultImageUrl = `${frontendBaseUrl}/sample_profile.jpeg`;
@@ -64,15 +64,15 @@ const signup = async (email, password, name, nickname, phone) => {
           logger.info(`Default profile image set from URL for user ${user.id}`);
         } catch (imageError) {
           logger.warn(`Failed to set profile image from URL, falling back to local file: ${imageError.message}`);
-          // Fall back to local file if URL fetch fails
+          // URL에서 가져오기 실패 시 로컬 파일로 대체
           await UserProfilePhoto.createDefaultProfilePhoto(user.id);
         }
       } else {
-        // If no frontend URL is configured, use local file directly
+        // 프론트엔드 URL이 구성되지 않은 경우 로컬 파일 직접 사용
         await UserProfilePhoto.createDefaultProfilePhoto(user.id);
       }
     } catch (error) {
-      // Log the error but don't fail the signup process
+      // 오류를 기록하지만 회원가입 프로세스는 중단하지 않음
       logger.error(`Error setting default profile image for user ${user.id}:`, error);
     }
 
@@ -80,7 +80,7 @@ const signup = async (email, password, name, nickname, phone) => {
   } catch (error) {
     console.error("Error in authService.signup:", error);
 
-    // Handle duplicate email error
+    // 중복 이메일 오류 처리
     if (
       error.message.includes("ER_DUP_ENTRY") ||
       error.message.includes("duplicate")

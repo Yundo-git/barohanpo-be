@@ -11,7 +11,7 @@ const { isAuthenticated } = require("../../middlewares/auth.middleware");
 
 const router = express.Router();
 
-// Public routes
+// 공개 라우트
 router.post("/signup", signup);
 router.post("/login", login);
 router.post("/refresh-token", refreshToken);
@@ -80,11 +80,11 @@ router.get("/me", isAuthenticated, getCurrentUser);
  */
 router.post("/signup", signup);
 
-// Public routes
+// 공개 라우트
 router.post("/login", login);
 router.post("/refresh-token", refreshToken);
 
-// Protected routes (require authentication)
+// 보호된 라우트 (인증 필요)
 router.use(isAuthenticated);
 router.get("/me", getCurrentUser);
 router.post("/logout", logout);
