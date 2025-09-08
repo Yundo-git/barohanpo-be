@@ -17,12 +17,12 @@ router.use("/kakao", kakaoRoutes); // GET /api/auth/kakao/login, /callback
 router.post("/signup", signup); // POST /api/auth/signup
 router.post("/login", login); // POST /api/auth/login
 router.post("/refresh-token", refreshToken); // POST /api/auth/refresh-token
+router.post("/logout", logout); // POST /api/auth/logout
 
 // 보호라우트
 router.use(isAuthenticated);
 
 router.get("/me", getCurrentUser); // GET /api/auth/me
-router.post("/logout", logout); // POST /api/auth/logout
 router.put("/:user_id/nickname", changeNick); // PUT  /api/auth/:user_id/nickname
 
 /**
