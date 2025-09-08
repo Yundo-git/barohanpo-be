@@ -7,7 +7,7 @@ const KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token";
 
 // 프론트 엔드 베이스 URL (예: http://localhost:3000)
 const FRONTEND_BASE_URL =
-  process.env.FRONTEND_BASE_URL || "http://localhost:3000";
+  process.env.CLIENT_URL || "http://localhost:3000";
 
 /** 카카오 로그인 페이지로 리다이렉트 */
 function redirectToKakaoLogin(req, res) {

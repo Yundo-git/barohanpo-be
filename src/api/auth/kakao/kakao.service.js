@@ -4,7 +4,7 @@ const {
   upsertOAuthLink,
   upsertUserProfilePhoto,
   getUserProfile,
-} = require("./kakao.model");
+} = require("./oauth.model");
 const { fetchImageAsBuffer } = require("../../../utils/fetchImage");
 const TokenService = require("../../../services/token.service");
 const { generateRandomNickname } = require("../../../utils/nicknameGenerator");

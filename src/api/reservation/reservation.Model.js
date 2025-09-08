@@ -70,7 +70,7 @@ const booksModel = {
     }
   },
 
-  // 예약하기(권장): 슬롯 UPDATE 없이, books에 INSERT만 시도
+  // 예약하기: 슬롯 UPDATE 없이, books에 INSERT만 시도
   insertReservation: async (user_id, p_id, date, time, memo) => {
     const conn = await db.getConnection();
     try {

@@ -9,7 +9,7 @@ const {
 } = require("./auth.controller");
 const { isAuthenticated } = require("../../middlewares/auth.middleware");
 const kakaoRoutes = require("./kakao/kakao.routes");
-
+const naverRoutes = require("./naver/naver.routes");
 const router = express.Router();
 
 // 공개 라우트
@@ -18,7 +18,7 @@ router.post("/signup", signup); // POST /api/auth/signup
 router.post("/login", login); // POST /api/auth/login
 router.post("/refresh-token", refreshToken); // POST /api/auth/refresh-token
 router.post("/logout", logout); // POST /api/auth/logout
-
+router.use("/naver", naverRoutes); // GET /api/auth/naver/login, /callback
 // 보호라우트
 router.use(isAuthenticated);
 
