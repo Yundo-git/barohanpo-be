@@ -1,141 +1,53 @@
-const authService = require("./auth.service");
-const { sendError, ERROR_TYPES } = require("../../utils/errorHandler");
 const jwt = require("jsonwebtoken");
+const authService = require("./auth.service");
+const { sendError } = require("../../utils/errorHandler");
+const { setRefreshCookie, clearRefreshCookie } = require("../../utils/cookies");
 
 /**
- * @typedef {import('./auth.types').User} User
- * @typedef {import('./auth.types').TokenPayload} TokenPayload
- * @typedef {import('./auth.types').AuthTokens} AuthTokens
- * @typedef {import('./auth.types').LoginResponse} LoginResponse
- * @typedef {import('./auth.types').RefreshTokenResponse} RefreshTokenResponse
- */
-/**
- * @swagger
- * /auth/signup:
- *   post:
- *     summary: 새로운 사용자 회원가입
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UserSignup'
- *     responses:
- *       200:
- *         description: 성공적으로 회원가입이 완료되었습니다.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ApiResponse'
- *       400:
- *         description: 잘못된 요청 파라미터
- *       500:
- *         description: 서버 내부 오류
- */
-/**
- * @swagger
- * /auth/signup:
- *   post:
- *     summary: Register a new user
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *               - name
- *               - phone
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: user@example.com
- *               password:
- *                 type: string
- *                 format: password
- *                 minLength: 8
- *                 example: password123
- *               name:
- *                 type: string
- *                 example: John Doe
- *               phone:
- *                 type: string
- *                 example: 01012345678
- *     responses:
- *       201:
- *         description: User registered successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   type: object
- *                   properties:
- *                     user:
- *                       $ref: '#/components/schemas/User'
- *                     token:
- *                       type: string
- *                       description: Access token
- *       400:
- *         description: Validation error or missing required fields
- *       409:
- *         description: Email already in use
- *       500:
- *         description: Internal server error
+ * 회원가입
+ * - refresh_token: HttpOnly 쿠키로 설정
+ * - accessToken: JSON 응답(body)로만 반환
  */
 const signup = async (req, res) => {
   try {
-    const { email, password, name, nickname, phone } = req.body;
+    const { email, password, name, phone } = req.body;
+    // nickname 은 프론트에서 안 보낼 수 있으므로 optional
+    const nickname = req.body?.nickname;
 
-    // 입력 유효성 검사
     if (!email || !password || !name || !phone) {
       return sendError(res, "All fields are required", "VALIDATION_ERROR");
     }
 
+    // 서비스는 { user, token, refreshToken } 반환
     const { user, token, refreshToken } = await authService.signup(
       email,
       password,
       name,
-      nickname,
+      nickname, // undefined 가능 → 서비스에서 랜덤 생성 및 중복 보정
       phone
     );
 
-    // 리프레시 토큰을 위한 HTTP-only 쿠키 설정
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/api/auth/refresh-token",
-    });
+    // refresh_token 쿠키로 설정
+    setRefreshCookie(res, refreshToken);
 
-    // 사용자 데이터와 액세스 토큰 반환
+    // accessToken은 응답 바디로만
     return res.status(201).json({
       success: true,
       data: {
         user,
-        token,
+        accessToken: token,
       },
     });
   } catch (error) {
-    console.error("회원가입 처리 중 오류 발생:", error);
+    console.error("회원가입 처리 중 오류:", error);
 
-    if (error.message.includes("already in use")) {
+    if (error.message?.includes("already in use")) {
       return sendError(res, "Email already in use", "VALIDATION_ERROR", {
         field: "email",
       });
     }
 
-    if (error.message.includes("Validation failed")) {
+    if (error.message?.includes("Password must be at least")) {
       return sendError(res, error.message, "VALIDATION_ERROR");
     }
 
@@ -144,84 +56,14 @@ const signup = async (req, res) => {
 };
 
 /**
- * @swagger
- * /auth/login:
- *   post:
- *     summary: User login
- *     description: |
- *       Authenticates a user and returns an access token.
- *       A refresh token is set as an HTTP-only cookie.
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 description: User's email address
- *                 example: user@example.com
- *               password:
- *                 type: string
- *                 format: password
- *                 description: User's password
- *                 example: password123
- *     responses:
- *       200:
- *         description: Successfully logged in
- *         headers:
- *           Set-Cookie:
- *             schema:
- *               type: string
- *               description: |
- *                 HTTP-only cookie containing the refresh token.
- *                 Secure and SameSite=Strict in production.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   $ref: '#/components/schemas/LoginResponse'
- *       400:
- *         description: Invalid request parameters
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       401:
- *         description: Authentication failed (invalid credentials)
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       429:
- *         description: Too many login attempts
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *     security: []
+ * 로그인
+ * - refresh_token: HttpOnly 쿠키로 설정
+ * - accessToken: JSON 응답(body)로만 반환
  */
 const login = async (req, res) => {
-  console.log("[Auth Controller] Login attempt for email:", req.body.email);
+  console.log("[Auth Controller] Login attempt for email:", req.body?.email);
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
 
     if (!email || !password) {
       return res.status(400).json({
@@ -230,126 +72,68 @@ const login = async (req, res) => {
       });
     }
 
+    // 서비스는 { user, token, refreshToken } 반환
     const result = await authService.login(email, password);
 
-    // 토큰을 HTTP Only 쿠키로 설정
-    res.cookie("token", result.token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // HTTPS를 사용하는 경우 true로 설정
-      maxAge: 24 * 60 * 60 * 1000, // 24시간 유효
-      sameSite: "strict",
-    });
+    // refresh_token만 쿠키로 저장 (access는 쿠키 금지)
+    setRefreshCookie(res, result.refreshToken);
 
-    res.json({
+    // accessToken은 응답 바디로만
+    return res.json({
       success: true,
-      data: result,
+      data: {
+        user: result.user,
+        accessToken: result.token,
+      },
     });
   } catch (error) {
     console.error("Error in authController.login:", error);
 
-    // 인증 실패 시 401 상태 코드 반환
+    // 서비스에서 안전화된 메시지를 던지면 그대로 매핑
     if (
       error.message === "존재하지 않는 이메일입니다." ||
-      error.message === "비밀번호가 일치하지 않습니다."
+      error.message === "비밀번호가 일치하지 않습니다." ||
+      error.message === "Authentication failed"
     ) {
       return res.status(401).json({
         success: false,
-        error: error.message,
+        error: "이메일 또는 비밀번호가 올바르지 않습니다.",
       });
     }
 
-    // 그 외 오류는 500 상태 코드로 반환
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: "로그인 처리 중 오류가 발생했습니다.",
     });
   }
 };
+
 /**
- * @swagger
- * /auth/refresh-token:
- *   post:
- *     summary: Refresh access token
- *     description: |
- *       Refreshes the access token using a valid refresh token.
- *       Implements refresh token rotation for better security.
- *       The refresh token must be sent as an HTTP-only cookie.
- *     tags: [Auth]
- *     requestBody:
- *       required: false
- *       content:
- *         application/json: {}
- *     responses:
- *       200:
- *         description: New tokens generated successfully
- *         headers:
- *           Set-Cookie:
- *             schema:
- *               type: string
- *               description: |
- *                 HTTP-only cookie containing the new refresh token.
- *                 The old refresh token is invalidated.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   $ref: '#/components/schemas/RefreshTokenResponse'
- *       400:
- *         description: Invalid request
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       401:
- *         description: Invalid or expired refresh token
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *     security: []
+ * 액세스 토큰 재발급 (토큰 로테이션 대응)
+ * - 요청의 refresh_token(쿠키 또는 헤더)을 사용
+ * - 새 refresh_token이 있으면 쿠키 갱신
+ * - accessToken은 응답 바디로만 반환
  */
 const refreshToken = async (req, res) => {
   try {
-    const refreshToken =
-      req.cookies?.refreshToken || req.headers["x-refresh-token"];
+    const refreshTokenFromReq =
+      req.cookies?.refresh_token || req.headers["x-refresh-token"];
 
-    if (!refreshToken) {
+    if (!refreshTokenFromReq) {
       return res.status(401).json({
         success: false,
         message: "리프레시 토큰이 필요합니다.",
       });
     }
 
-    const result = await authService.refreshAccessToken(refreshToken);
+    // 서비스는 { accessToken, refreshToken?(로테이션 시), user } 반환
+    const result = await authService.refreshAccessToken(refreshTokenFromReq);
 
-    // 새로운 액세스 토큰과 리프레시 토큰을 쿠키에 설정
-    res.cookie("accessToken", result.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 15 * 60 * 1000, // 15분
-    });
+    // 로테이션된 refresh_token이 있으면 쿠키 갱신
+    if (result.refreshToken) {
+      setRefreshCookie(res, result.refreshToken);
+    }
 
-    // 새로 발급된 리프레시 토큰도 쿠키에 설정
-    res.cookie("refreshToken", result.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
-    });
-
-    // 성공시 응답 코드(200) 및 내용 반환 (액세스 토큰만 클라이언트에 반환)
     return res.status(200).json({
       success: true,
       data: {
@@ -366,72 +150,12 @@ const refreshToken = async (req, res) => {
   }
 };
 
-//         success:
-//           type: boolean
-//           example: true
-//         data:
-//           $ref: '#/components/schemas/User'
-
-// export { signup, login, refreshToken };
-
 /**
- * @swagger
- * /auth/logout:
- *   post:
- *     summary: User logout
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Successfully logged out
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Successfully logged out"
- *       401:
- *         description: Unauthorized (invalid or missing token)
- *       500:
- *         description: Internal server error
- */
-/**
- * @swagger
- * /auth/me:
- *   get:
- *     summary: Get current user's profile
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Successfully retrieved user profile
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   $ref: '#/components/schemas/User'
- *       401:
- *         description: Unauthorized (invalid or missing token)
- *       404:
- *         description: User not found
- *       500:
- *         description: Internal server error
+ * 현재 사용자 정보
+ * - 인증 미들웨어에서 req.user 설정됨을 가정
  */
 const getCurrentUser = async (req, res) => {
   try {
-    // User ID is attached to req.user by the isAuthenticated middleware
     const userId = req.user?.user_id;
 
     if (!userId) {
@@ -441,9 +165,7 @@ const getCurrentUser = async (req, res) => {
       });
     }
 
-    // Get current user's profile
     const user = await authService.getCurrentUser(userId);
-
     return res.status(200).json({
       success: true,
       data: user,
@@ -466,69 +188,37 @@ const getCurrentUser = async (req, res) => {
 };
 
 /**
- * @swagger
- * /auth/logout:
- *   post:
- *     summary: User logout
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Successfully logged out
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Successfully logged out"
- *       401:
- *         description: Unauthorized (invalid or missing token)
- *       500:
- *         description: Internal server error
+ * 로그아웃
+ * - refresh_token 쿠키 제거
+ * - 서버 저장소의 refresh 무효화(선택)
  */
 const logout = async (req, res) => {
   try {
-    // 쿠키에서 리프레시 토큰 가져오기
-    const refreshToken = req.cookies?.refreshToken;
+    const refreshTokenFromReq =
+      req.cookies?.refresh_token || req.headers["x-refresh-token"];
 
-    // 리프레시 토큰 쿠키 삭제
-    res.clearCookie("refreshToken", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/api/auth/refresh-token",
-    });
+    // 쿠키 제거 (항상 수행)
+    clearRefreshCookie(res);
 
-    // 리프레시 토큰이 존재하면 무효화
-    if (refreshToken) {
+    // 서버 저장소 refresh 무효화
+    if (refreshTokenFromReq) {
       try {
-        // JTI를 얻기 위해 토큰 검증
         const decoded = jwt.verify(
-          refreshToken,
+          refreshTokenFromReq,
           process.env.JWT_REFRESH_SECRET,
-          { ignoreExpiration: true } // We still want to decode even if expired
+          { ignoreExpiration: true }
         );
 
-        // JTI가 있으면 해당 토큰만 무효화
         if (decoded?.jti) {
           await authService.invalidateRefreshToken(decoded.jti);
         } else if (req.user?.user_id) {
-          // JTI를 가져올 수 없지만 사용자 ID가 있으면 해당 사용자의 모든 토큰 무효화
           await authService.logout(req.user.user_id);
         }
-      } catch (error) {
-        // 오류를 기록하지만 로그아웃은 계속 진행
-        console.error("Error during token invalidation:", error.message);
+      } catch (e) {
+        console.error("Error during token invalidation:", e.message);
       }
     }
 
-    // 항상 성공 응답 반환
     return res.status(200).json({
       success: true,
       message: "Successfully logged out",
@@ -542,11 +232,9 @@ const logout = async (req, res) => {
   }
 };
 
+/** 닉네임 변경 */
 const changeNick = async (req, res) => {
   const { user_id, nickname } = req.body;
-  console.log("user_id", user_id);
-  console.log("newNick", nickname);
-
   try {
     const result = await authService.changeNickService(user_id, nickname);
     return res.status(200).json({
@@ -554,7 +242,7 @@ const changeNick = async (req, res) => {
       data: result,
     });
   } catch (error) {
-    console.error("닉네임 변경 중 오류 발생:", error);
+    console.error("닉네임 변경 중 오류:", error);
     return res.status(500).json({
       success: false,
       error: error.message,

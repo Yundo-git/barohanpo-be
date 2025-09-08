@@ -1,127 +1,168 @@
-const { authModel } = require('../api/auth/auth.Model');
-const { generateTokenId } = require('../config/jwt.config');
+// services/token.service.js
+const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
+const db = require("../config/database");
+const logger = require("../utils/logger");
 
-/**
- * Service for managing token operations including storage and validation
- */
-class TokenService {
-  /**
-   * Store a refresh token in the database
-   * @param {string} userId - The user ID associated with the token
-   * @param {string} token - The refresh token to store
-   * @param {string} jti - The JWT ID for the token
-   * @returns {Promise<Object>} The stored token record
-   */
-  async storeRefreshToken(userId, token, jti) {
-    try {
-      // Hash the token before storing it
-      const hashedToken = await this.hashToken(token);
-      
-      // Store the token in the database
-      const tokenRecord = await authModel.storeRefreshToken({
-        userId,
-        token: hashedToken,
-        jti,
-        expiresAt: new Date(Date.now() + (process.env.REFRESH_TOKEN_TTL_MS || 7 * 24 * 60 * 60 * 1000)),
-      });
-      
-      return tokenRecord;
-    } catch (error) {
-      console.error('Error storing refresh token:', error);
-      throw new Error('Failed to store refresh token');
-    }
+const {
+  JWT_ACCESS_SECRET,
+  JWT_REFRESH_SECRET,
+  ACCESS_TOKEN_TTL,
+  REFRESH_TOKEN_TTL,
+} = require("../config/jwt.config");
+
+/** ------- 내부 유틸 ------- */
+function ensureEnv() {
+  if (!JWT_REFRESH_SECRET || JWT_REFRESH_SECRET.length < 16) {
+    logger.error("JWT_REFRESH_SECRET is missing or too short (min 16 chars)");
+    process.exit(1);
   }
-
-  /**
-   * Invalidate a refresh token by its JWT ID
-   * @param {string} jti - The JWT ID of the token to invalidate
-   * @returns {Promise<boolean>} True if the token was successfully invalidated
-   */
-  async invalidateRefreshToken(jti) {
-    try {
-      if (!jti) {
-        throw new Error('JTI is required to invalidate token');
-      }
-      
-      await authModel.invalidateRefreshToken(jti);
-      return true;
-    } catch (error) {
-      console.error('Error invalidating refresh token:', error);
-      throw new Error('Failed to invalidate refresh token');
-    }
-  }
-
-  /**
-   * Check if a refresh token is valid
-   * @param {string} token - The refresh token to validate
-   * @param {string} jti - The JWT ID from the token
-   * @returns {Promise<boolean>} True if the token is valid
-   */
-  async validateRefreshToken(token, jti) {
-    try {
-      if (!token || !jti) {
-        return false;
-      }
-      
-      // Get the stored token by JTI
-      const storedToken = await authModel.findRefreshTokenByJti(jti);
-      
-      if (!storedToken || storedToken.revoked) {
-        return false;
-      }
-      
-      // Verify the token matches the stored hash
-      const isValid = await this.verifyTokenHash(token, storedToken.token);
-      
-      return isValid;
-    } catch (error) {
-      console.error('Error validating refresh token:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Hash a token for secure storage
-   * @private
-   */
-  async hashToken(token) {
-    const { createHash } = await import('crypto');
-    return createHash('sha256').update(token).digest('hex');
-  }
-
-  /**
-   * Verify a token against a stored hash
-   * @private
-   */
-  async verifyTokenHash(token, hashedToken) {
-    const { createHash } = await import('crypto');
-    const hash = createHash('sha256').update(token).digest('hex');
-    return hash === hashedToken;
-  }
-
-  /**
-   * Generate a new token ID and ensure it's unique
-   * @returns {Promise<string>} A unique token ID
-   */
-  async generateUniqueTokenId() {
-    let attempts = 0;
-    const maxAttempts = 5;
-    
-    while (attempts < maxAttempts) {
-      const jti = generateTokenId();
-      const existing = await authModel.findRefreshTokenByJti(jti);
-      
-      if (!existing) {
-        return jti;
-      }
-      
-      attempts++;
-    }
-    
-    throw new Error('Failed to generate unique token ID after multiple attempts');
+  if (!JWT_ACCESS_SECRET || JWT_ACCESS_SECRET.length < 16) {
+    logger.error("JWT_ACCESS_SECRET is missing or too short (min 16 chars)");
+    process.exit(1);
   }
 }
 
-const tokenService = new TokenService();
+function sha256(s) {
+  return crypto.createHash("sha256").update(s).digest("hex");
+}
 
-module.exports = { tokenService };
+function generateTokenId() {
+  // UUID도 가능하지만 프로젝트 전역에서 crypto 기반으로 통일
+  return crypto.randomBytes(16).toString("hex");
+}
+
+/** ------- 핵심 동작 ------- */
+
+/**
+ * access/refresh 동시 발급 + refresh 저장
+ * @param {{ user_id:number, email?:string, name?:string, role?:string, nickname?:string, phone?:string }} userPayload
+ */
+async function issueJwtPair(userPayload) {
+  const jti = generateTokenId();
+
+  const accessToken = jwt.sign(
+    { ...userPayload, type: "access" },
+    JWT_ACCESS_SECRET,
+    {
+      expiresIn: ACCESS_TOKEN_TTL,
+      issuer: "barohanpo",
+      subject: "access",
+      jwtid: jti,
+    }
+  );
+
+  const refreshToken = jwt.sign(
+    { ...userPayload, type: "refresh" },
+    JWT_REFRESH_SECRET,
+    {
+      expiresIn: REFRESH_TOKEN_TTL,
+      issuer: "barohanpo",
+      subject: "refresh",
+      jwtid: jti,
+    }
+  );
+
+  const decoded = jwt.decode(refreshToken);
+  const expiresAt = new Date(decoded.exp * 1000);
+
+  await db.execute(
+    `INSERT INTO refresh_tokens (user_id, jti, token_hash, expires_at, revoked)
+     VALUES (?, ?, ?, ?, 0)`,
+    [userPayload.user_id, jti, sha256(refreshToken), expiresAt]
+  );
+
+  return { accessToken, refreshToken, jti, expiresAt };
+}
+
+/**
+ * refresh 유효성 검증 (DB/만료/회수/해시)
+ * @param {string} jti
+ * @param {string} refreshJwt
+ */
+async function isRefreshValid(jti, refreshJwt) {
+  const [rows] = await db.execute(
+    `SELECT token_hash, revoked, expires_at FROM refresh_tokens WHERE jti = ? LIMIT 1`,
+    [jti]
+  );
+  if (!rows || !rows[0]) return false;
+  const { token_hash, revoked, expires_at } = rows[0];
+  if (revoked) return false;
+  if (new Date(expires_at) < new Date()) return false;
+  return token_hash === sha256(refreshJwt);
+}
+
+/** 특정 jti 무효화 */
+async function revokeByJti(jti) {
+  await db.execute(
+    `UPDATE refresh_tokens SET revoked = 1, revoked_at = NOW() WHERE jti = ?`,
+    [jti]
+  );
+}
+
+/** 유저 전부 무효화 */
+async function revokeAllForUser(userId) {
+  await db.execute(
+    `UPDATE refresh_tokens SET revoked = 1, revoked_at = NOW() WHERE user_id = ?`,
+    [userId]
+  );
+}
+
+/**
+ * refresh 회전: 새 쌍 발급 + DB 갱신(구 jti revoke)
+ * @param {string} oldRefresh
+ * @returns {{ accessToken:string, refreshToken:string, userPayload:object, newJti:string, expiresAt:Date }}
+ */
+async function rotateRefresh(oldRefresh) {
+  let payload;
+  try {
+    payload = jwt.verify(oldRefresh, JWT_REFRESH_SECRET, {
+      issuer: "barohanpo",
+      subject: "refresh",
+    });
+  } catch (e) {
+    throw new Error("Invalid or expired refresh token");
+  }
+
+  if (payload.type !== "refresh") throw new Error("Invalid token type");
+
+  const valid = await isRefreshValid(payload.jti, oldRefresh);
+  if (!valid) throw new Error("Invalid or expired refresh token");
+
+  const userPayload = {
+    // 통일: 우리 프로젝트는 user_id 사용
+    user_id: Number(payload.user_id ?? payload.sub ?? payload.id),
+    email: payload.email,
+    name: payload.name,
+    role: payload.role,
+    nickname: payload.nickname,
+    phone: payload.phone,
+  };
+
+  const {
+    accessToken,
+    refreshToken,
+    jti: newJti,
+    expiresAt,
+  } = await issueJwtPair(userPayload);
+
+  // 예전 토큰 revoke
+  await revokeByJti(payload.jti);
+
+  return { accessToken, refreshToken, userPayload, newJti, expiresAt };
+}
+
+ensureEnv();
+
+module.exports = {
+  // 외부에 노출할 API
+  issueJwtPair,
+  rotateRefresh,
+  revokeByJti,
+  revokeAllForUser,
+  isRefreshValid,
+
+  // 필요 시 유틸도 노출
+  generateTokenId,
+  sha256,
+};

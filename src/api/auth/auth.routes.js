@@ -8,23 +8,28 @@ const {
   changeNick,
 } = require("./auth.controller");
 const { isAuthenticated } = require("../../middlewares/auth.middleware");
+const kakaoRoutes = require("./kakao/kakao.routes");
 
 const router = express.Router();
 
 // 공개 라우트
-router.post("/signup", signup);
-router.post("/login", login);
-router.post("/refresh-token", refreshToken);
-router.post("/logout", logout);
-router.put("/:user_id/nickname", changeNick);
-// Protected routes
-router.get("/me", isAuthenticated, getCurrentUser);
+router.use("/kakao", kakaoRoutes); // GET /api/auth/kakao/login, /callback
+router.post("/signup", signup); // POST /api/auth/signup
+router.post("/login", login); // POST /api/auth/login
+router.post("/refresh-token", refreshToken); // POST /api/auth/refresh-token
+
+// 보호라우트
+router.use(isAuthenticated);
+
+router.get("/me", getCurrentUser); // GET /api/auth/me
+router.post("/logout", logout); // POST /api/auth/logout
+router.put("/:user_id/nickname", changeNick); // PUT  /api/auth/:user_id/nickname
 
 /**
  * @swagger
  * tags:
  *   name: Auth
- * 
+ *
  *   description: 사용자 인증 관련 API
  */
 
@@ -79,16 +84,6 @@ router.get("/me", isAuthenticated, getCurrentUser);
  *       500:
  *         description: 서버 오류
  */
-router.post("/signup", signup);
-
-// 공개 라우트
-router.post("/login", login);
-router.post("/refresh-token", refreshToken);
-
-// 보호된 라우트 (인증 필요)
-router.use(isAuthenticated);
-router.get("/me", getCurrentUser);
-router.post("/logout", logout);
 
 // @swagger
 // components:
