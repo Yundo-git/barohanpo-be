@@ -1,202 +1,173 @@
-const multer = require('multer');
-const { createHash } = require('crypto');
-const logger = require('../utils/logger');
+const multer = require("multer");
+const { createHash } = require("crypto");
+const logger = require("../utils/logger");
 
-// 파일 크기 제한 (5MB)
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+// ===== 공통 설정 =====
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-// 메모리 스토리지 설정
 const storage = multer.memoryStorage();
-
-// 파일 필터링 함수
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-  if (!allowedTypes.includes(file.mimetype)) {
-    const error = new Error('지원하지 않는 파일 형식입니다. JPEG, PNG, WebP 형식만 업로드 가능합니다.');
-    error.status = 400;
-    return cb(error, false);
+  if (!ALLOWED_TYPES.includes(file.mimetype)) {
+    const err = new Error(
+      "지원하지 않는 파일 형식입니다. JPEG, PNG, WebP 형식만 업로드 가능합니다."
+    );
+    err.status = 400;
+    return cb(err, false);
   }
   cb(null, true);
 };
 
-// Multer 미들웨어 생성
-const upload = multer({
-  storage: storage,
+const base = multer({
+  storage,
   limits: { fileSize: MAX_FILE_SIZE },
-  fileFilter: fileFilter
+  fileFilter,
 });
-
-// 단일 파일 업로드를 위한 미들웨어
-const singleUpload = multer({
-  storage: storage,
+const single = multer({
+  storage,
   limits: { fileSize: MAX_FILE_SIZE, files: 1 },
-  fileFilter: fileFilter
+  fileFilter,
+});
+const multi = multer({
+  storage,
+  limits: { fileSize: MAX_FILE_SIZE, files: 3 },
+  fileFilter,
 });
 
-// 다중 파일 업로드를 위한 미들웨어 (최대 5개)
-const multiUpload = multer({
-  storage: storage,
-  limits: { fileSize: MAX_FILE_SIZE, files: 5 },
-  fileFilter: fileFilter
-});
+const handleUploadError = (err, res) => {
+  logger?.error?.("파일 업로드 오류:", err);
+  if (err.code === "LIMIT_FILE_SIZE")
+    return res
+      .status(413)
+      .json({
+        success: false,
+        message: "파일 크기가 너무 큽니다. 최대 5MB까지 업로드 가능합니다.",
+      });
+  if (err.code === "LIMIT_FILE_COUNT")
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message: "최대 3개의 파일만 업로드 가능합니다.",
+      });
+  if (
+    typeof err.message === "string" &&
+    err.message.includes("지원하지 않는 파일 형식")
+  )
+    return res.status(400).json({ success: false, message: err.message });
+  return res
+    .status(500)
+    .json({ success: false, message: "파일 업로드 중 오류가 발생했습니다." });
+};
 
-// 프로필 이미지 업로드 미들웨어
+// ===== 프로필 이미지(단일) — 기본 필드: profileImage (호환: file | image | photo) =====
 const uploadProfileImage = (req, res, next) => {
-  upload.single('file')(req, res, (err) => {
-    if (err) {
-      logger.error('파일 업로드 오류:', err);
-      
-      // 파일 크기 초과 오류 처리
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(413).json({
-          success: false,
-          message: '파일 크기가 너무 큽니다. 최대 5MB까지 업로드 가능합니다.'
-        });
+  single.fields([
+    { name: "profileImage", maxCount: 1 }, // Swagger 기본
+    { name: "file", maxCount: 1 },
+    { name: "image", maxCount: 1 },
+    { name: "photo", maxCount: 1 },
+  ])(req, res, (err) => {
+    if (err) return handleUploadError(err, res);
+    if (req.files) {
+      for (const key of Object.keys(req.files)) {
+        const arr = req.files[key];
+        if (Array.isArray(arr) && arr[0]) {
+          req.file = arr[0];
+          break;
+        }
       }
-      
-      // 파일 형식 오류 처리
-      if (err.message.includes('지원하지 않는 파일 형식')) {
-        return res.status(400).json({
-          success: false,
-          message: err.message
-        });
-      }
-      
-      // 기타 오류 처리
-      return res.status(500).json({
-        success: false,
-        message: '파일 업로드 중 오류가 발생했습니다.'
-      });
     }
-    
-    // 파일이 없을 경우
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: '업로드할 파일이 없습니다.'
-      });
-    }
-    
-    // 파일이 정상적으로 업로드된 경우
+    if (!req.file)
+      return res
+        .status(400)
+        .json({ success: false, message: "업로드할 파일이 없습니다." });
     next();
   });
 };
 
-// 단일 리뷰 사진 업로드 미들웨어 (하나의 파일만 업로드)
-const uploadReviewPhoto = (req, res, next) => {
-  singleUpload.fields([
-    { name: 'photo', maxCount: 1 },
-    { name: 'image', maxCount: 1 }
+// 과거 코드 호환용 alias (라우터에서 uploadMiddleware로 import해도 됨)
+const uploadMiddleware = uploadProfileImage;
+
+// ===== 리뷰 사진(단일) — 허용 필드: photo | image | file =====
+const uploadReviewPhotoSingle = (req, res, next) => {
+  single.fields([
+    { name: "photo", maxCount: 1 },
+    { name: "image", maxCount: 1 },
+    { name: "file", maxCount: 1 },
   ])(req, res, (err) => {
-    if (err) {
-      return handleUploadError(err, res);
-    }
-    
-    // 파일이 업로드된 경우 req.file 또는 req.files에 파일 정보가 들어감
-    // 단일 파일을 처리하기 위해 첫 번째 파일을 req.file에 할당
+    if (err) return handleUploadError(err, res);
     if (req.files) {
-      const fileField = Object.keys(req.files)[0];
-      if (fileField && req.files[fileField] && req.files[fileField][0]) {
-        req.file = req.files[fileField][0];
+      for (const key of Object.keys(req.files)) {
+        const arr = req.files[key];
+        if (Array.isArray(arr) && arr[0]) {
+          req.file = arr[0];
+          break;
+        }
       }
     }
-    
+    if (!req.file)
+      return res
+        .status(400)
+        .json({ success: false, message: "업로드할 파일이 없습니다." });
     next();
   });
 };
 
-// 다중 리뷰 사진 업로드 미들웨어 (최대 5개)
-const uploadMultipleReviewPhotos = (req, res, next) => {
-  // 'photos[]' 또는 'images' 필드 이름으로 업로드된 파일 처리
-  multiUpload.fields([
-    { name: 'photos', maxCount: 5 },
-    { name: 'images', maxCount: 5 }
+// ===== 리뷰 사진(다중 최대 3) — 허용 필드: photos | images | files =====
+const uploadReviewPhotos = (req, res, next) => {
+  multi.fields([
+    { name: "photos", maxCount: 3 },
+    { name: "images", maxCount: 3 },
+    { name: "files", maxCount: 3 },
   ])(req, res, (err) => {
-    if (err) {
-      return handleUploadError(err, res);
-    }
-    
-    // 모든 파일을 req.files에 통합
+    if (err) return handleUploadError(err, res);
+    let merged = [];
     if (req.files) {
-      req.files = [].concat(
-        req.files['photos'] || [],
-        req.files['images'] || []
+      merged = merged.concat(
+        req.files.photos || [],
+        req.files.images || [],
+        req.files.files || []
       );
     }
-    
+    if (merged.length > 3)
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "최대 3개의 파일만 업로드 가능합니다.",
+        });
+    req.files = merged; // 컨트롤러에서 배열로 사용
     next();
   });
 };
 
-// 에러 처리 공통 함수
-const handleUploadError = (err, res) => {
-  logger.error('파일 업로드 오류:', err);
-  
-  if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(413).json({
-      success: false,
-      message: '파일 크기가 너무 큽니다. 최대 5MB까지 업로드 가능합니다.'
-    });
-  }
-  
-  if (err.code === 'LIMIT_FILE_COUNT') {
-    return res.status(400).json({
-      success: false,
-      message: '최대 5개의 파일만 업로드 가능합니다.'
-    });
-  }
-  
-  if (err.message.includes('지원하지 않는 파일 형식')) {
-    return res.status(400).json({
-      success: false,
-      message: err.message
-    });
-  }
-  
-  return res.status(500).json({
-    success: false,
-    message: '파일 업로드 중 오류가 발생했습니다.'
-  });
-};
-
-// ETag 생성 함수
-const generateETag = (data) => {
-  const hash = createHash('md5').update(data).digest('hex');
-  return `"${hash}"`;
-};
-
-// 캐시 관련 헤더 설정 미들웨어
+// ===== 캐시 유틸 =====
+const generateETag = (data) =>
+  `"${createHash("md5").update(data).digest("hex")}"`;
 const setCacheHeaders = (req, res, data, lastModified) => {
   const etag = generateETag(data);
-  res.set('ETag', etag);
-  res.set('Last-Modified', lastModified.toUTCString());
-  
-  // 캐시 제어 헤더 설정 (1시간 캐시)
-  res.set('Cache-Control', 'public, max-age=3600');
-  
-  // 클라이언트 캐시 검증 (If-None-Match, If-Modified-Since)
-  const clientETag = req.headers['if-none-match'];
-  const clientModifiedSince = req.headers['if-modified-since'];
-  
-  if (clientETag && clientETag === etag) {
-    return res.status(304).end();
-  }
-  
-  if (clientModifiedSince) {
-    const clientModifiedDate = new Date(clientModifiedSince);
-    if (lastModified <= clientModifiedDate) {
-      return res.status(304).end();
-    }
+  res.set("ETag", etag);
+  res.set("Last-Modified", lastModified.toUTCString());
+  res.set("Cache-Control", "public, max-age=3600");
+  const inm = req.headers["if-none-match"];
+  const ims = req.headers["if-modified-since"];
+  if (inm && inm === etag) return res.status(304).end();
+  if (ims) {
+    const d = new Date(ims);
+    if (lastModified <= d) return res.status(304).end();
   }
 };
 
-// Export the upload middleware and utilities
 module.exports = {
-  uploadMiddleware: singleUpload.single('file'),
-  uploadReviewPhoto,
-  uploadMultipleReviewPhotos,
+  // 프로필
   uploadProfileImage,
+  uploadMiddleware, // ← 라우터에서 이 이름으로 사용 가능(호환)
+  // 리뷰
+  uploadReviewPhotoSingle,
+  uploadReviewPhotos,
+  // 선택 유틸
+  base,
   generateETag,
   setCacheHeaders,
-  upload // Exporting the base upload middleware for flexibility
 };

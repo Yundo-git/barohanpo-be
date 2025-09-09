@@ -92,21 +92,23 @@ const createReviewService = async (
   }
 };
 
-const updateReview = async (id, score, comment, photo_blob = null) => {
-  try {
-    const result = await reviewModel.updateReview(
-      id,
-      score,
-      comment,
-      photo_blob
-    );
-    return result;
-  } catch (error) {
-    console.error("Error in reviewService.updateReview:", error);
-    throw error;
-  }
+const updateReviewWithPhotos = async (
+  reviewId,
+  score,
+  comment,
+  keepIds = [],
+  newPhotoBuffers = []
+) => {
+  // 최종 개수 검증은 모델에서 실제 존재 개수와 합산해서도 체크하지만,
+  // 프리체크로 한 번 더 방어 가능(선택)
+  return await reviewModel.updateReviewWithPhotos(
+    reviewId,
+    score,
+    comment,
+    keepIds,
+    newPhotoBuffers
+  );
 };
-
 const deleteReview = async (review_id) => {
   try {
     const result = await reviewModel.deleteReview(review_id);
@@ -157,9 +159,9 @@ module.exports = {
   fetchFiveStarReview,
   fetchPharmacyReview,
   createReviewService,
-  updateReview,
+  updateReviewWithPhotos,
   deleteReview,
   getReviewPhotos,
   addReviewPhoto,
-  deleteReviewPhoto
+  deleteReviewPhoto,
 };

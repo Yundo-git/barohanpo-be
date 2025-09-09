@@ -4,7 +4,8 @@ const {
   fetchOneId,
   createReviewService,
   fetchFiveStarReview,
-  updateReview,
+  // updateReview,
+  updateReviewWithPhotos,
   fetchPharmacyReview,
   deleteReview,
 } = require("./review.service");
@@ -115,12 +116,12 @@ const createReviewController = async (req, res) => {
 // Get all photos for a review
 const getReviewPhotosController = async (req, res) => {
   const { review_id } = req.params;
-  
+
   try {
     const photos = await getReviewPhotos(review_id);
     res.json({
       success: true,
-      data: photos
+      data: photos,
     });
   } catch (error) {
     console.error("Error in reviewController.getReviewPhotos:", error);
@@ -134,21 +135,21 @@ const getReviewPhotosController = async (req, res) => {
 // Add a photo to a review
 const addReviewPhotoController = async (req, res) => {
   const { review_id } = req.params;
-  
+
   try {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        error: "사진 파일이 필요합니다."
+        error: "사진 파일이 필요합니다.",
       });
     }
-    
+
     const photoId = await addReviewPhoto(review_id, req.file.buffer);
-    
+
     res.status(201).json({
       success: true,
       photo_id: photoId,
-      message: "리뷰 사진이 추가되었습니다."
+      message: "리뷰 사진이 추가되었습니다.",
     });
   } catch (error) {
     console.error("Error in reviewController.addReviewPhoto:", error);
@@ -162,12 +163,12 @@ const addReviewPhotoController = async (req, res) => {
 // Delete a photo from a review
 const deleteReviewPhotoController = async (req, res) => {
   const { photo_id } = req.params;
-  
+
   try {
     await deleteReviewPhoto(photo_id);
     res.json({
       success: true,
-      message: "리뷰 사진이 삭제되었습니다."
+      message: "리뷰 사진이 삭제되었습니다.",
     });
   } catch (error) {
     console.error("Error in reviewController.deleteReviewPhoto:", error);
@@ -181,35 +182,47 @@ const deleteReviewPhotoController = async (req, res) => {
 // Update a review with multiple photos
 const updateReviewController = async (req, res) => {
   const { review_id } = req.params;
-  const { score, comment } = req.body;
-  
+  const { score, comment, existing_photo_ids } = req.body;
+
   try {
-    // Handle multiple file uploads
-    let photo_blobs = [];
-    if (req.file) {
-      // Single file upload
-      photo_blobs = [req.file.buffer];
-    } else if (req.files && req.files.length > 0) {
-      // Multiple file uploads
-      photo_blobs = req.files.map(file => file.buffer);
+    // 1) 새로 업로드된 파일(0~3장)
+    const files = Array.isArray(req.files) ? req.files : [];
+    const newPhotoBuffers = files.map((f) => f.buffer);
+
+    // 2) 유지할 기존 사진 ID 파싱 (문자열 JSON 배열)
+    let keepIds = [];
+    if (existing_photo_ids) {
+      try {
+        const parsed = JSON.parse(existing_photo_ids);
+        if (Array.isArray(parsed)) {
+          keepIds = parsed
+            .map((v) => Number(v))
+            .filter((n) => Number.isFinite(n) && n > 0);
+        }
+      } catch (e) {
+        return res
+          .status(400)
+          .json({ success: false, message: "existing_photo_ids 파싱 실패" });
+      }
     }
 
-    const result = await updateReview(review_id, score, comment, photo_blobs);
+    // 3) 서비스 호출 (트랜잭션 처리)
+    const result = await updateReviewWithPhotos(
+      Number(review_id),
+      Number(score),
+      String(comment ?? ""),
+      keepIds,
+      newPhotoBuffers
+    );
 
-    if (result.affectedRows > 0) {
-      res.json({
-        success: true,
-        message: "리뷰가 성공적으로 수정되었습니다.",
-      });
-    } else {
-      res.status(404).json({
-        success: false,
-        message: "리뷰를 찾을 수 없습니다.",
-      });
-    }
+    return res.json({
+      success: true,
+      message: "리뷰가 성공적으로 수정되었습니다.",
+      data: result,
+    });
   } catch (error) {
     console.error("Error in reviewController.updateReview:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: error.message || "리뷰 수정 중 오류가 발생했습니다.",
     });
@@ -239,5 +252,5 @@ module.exports = {
   deleteReviewController,
   getReviewPhotosController,
   addReviewPhotoController,
-  deleteReviewPhotoController
+  deleteReviewPhotoController,
 };
