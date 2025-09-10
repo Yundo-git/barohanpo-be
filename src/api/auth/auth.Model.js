@@ -1,17 +1,17 @@
 const pool = require("../../config/database");
 
 /**
- * Authentication database model
+ * 인증 관련 데이터베이스 모델
  */
 const authModel = {
   /**
-   * Create a new user account
-   * @param {string} email - User email
-   * @param {string} password - Hashed password
-   * @param {string} name - User's name
-   * @param {string} nickname - User's nickname
-   * @param {string} phone - Phone number
-   * @returns {Promise<Object>} Created user info
+   * 새로운 사용자 계정 생성
+   * @param {string} email - 사용자 이메일
+   * @param {string} password - 해시된 비밀번호
+   * @param {string} name - 사용자 이름
+   * @param {string} nickname - 사용자 닉네임
+   * @param {string} phone - 전화번호
+   * @returns {Promise<Object>} 생성된 사용자 정보
    */
   signup: async (email, password, name, nickname, phone) => {
     console.log("email", email);
@@ -27,7 +27,7 @@ const authModel = {
         [email, password, name, nickname, phone]
       );
 
-      // Fetch the created user
+      // 생성된 사용자 정보 조회
       const [user] = await pool.query(
         `SELECT user_id, email, name, nickname, phone, role, created_at 
          FROM users WHERE user_id = ?`,
@@ -38,7 +38,7 @@ const authModel = {
     } catch (error) {
       console.error("Error in authModel.signup:", error);
 
-      // Check for duplicate email
+      // 중복 이메일 확인
       if (error.code === "ER_DUP_ENTRY") {
         throw new Error("이미 사용 중인 이메일입니다.");
       }
@@ -48,9 +48,9 @@ const authModel = {
   },
 
   /**
-   * Find user by email
-   * @param {string} email - User email
-   * @returns {Promise<Object|null>} User info or null if not found
+   * 이메일로 사용자 조회
+   * @param {string} email - 사용자 이메일
+   * @returns {Promise<Object|null>} 사용자 정보 또는 찾을 수 없는 경우 null
    */
   findByEmail: async (email) => {
     try {
@@ -68,9 +68,9 @@ const authModel = {
   },
 
   /**
-   * Find user by ID
-   * @param {number} userId - User ID
-   * @returns {Promise<Object|null>} User info without password or null if not found
+   * 사용자 ID로 조회
+   * @param {number} userId - 사용자 ID
+   * @returns {Promise<Object|null>} 비밀번호를 제외한 사용자 정보 또는 찾을 수 없는 경우 null
    */
   findById: async (userId) => {
     try {
@@ -88,13 +88,13 @@ const authModel = {
   },
 
   /**
-   * Store a refresh token in the database
-   * @param {Object} tokenData - Token data
-   * @param {string} tokenData.userId - User ID
-   * @param {string} tokenData.token - Hashed refresh token
-   * @param {string} tokenData.jti - JWT ID for the token
-   * @param {Date} tokenData.expiresAt - Token expiration date
-   * @returns {Promise<Object>} Stored token info
+   * 리프레시 토큰을 데이터베이스에 저장
+   * @param {Object} tokenData - 토큰 데이터
+   * @param {string} tokenData.userId - 사용자 ID
+   * @param {string} tokenData.token - 해시된 리프레시 토큰
+   * @param {string} tokenData.jti - 토큰의 JWT ID
+   * @param {Date} tokenData.expiresAt - 토큰 만료 일자
+   * @returns {Promise<Object>} 저장된 토큰 정보
    */
   storeRefreshToken: async ({ userId, token, jti, expiresAt }) => {
     try {
@@ -113,9 +113,9 @@ const authModel = {
   },
 
   /**
-   * Find a refresh token by its JWT ID
-   * @param {string} jti - JWT ID of the token
-   * @returns {Promise<Object|null>} Token info or null if not found
+   * JWT ID로 리프레시 토큰 조회
+   * @param {string} jti - 토큰의 JWT ID
+   * @returns {Promise<Object|null>} 토큰 정보 또는 찾을 수 없는 경우 null
    */
   findRefreshTokenByJti: async (jti) => {
     try {
@@ -134,9 +134,9 @@ const authModel = {
   },
 
   /**
-   * Invalidate a refresh token by its JWT ID
-   * @param {string} jti - JWT ID of the token to invalidate
-   * @returns {Promise<boolean>} True if token was invalidated
+   * JWT ID로 리프레시 토큰 무효화
+   * @param {string} jti - 무효화할 토큰의 JWT ID
+   * @returns {Promise<boolean>} 토큰이 무효화된 경우 true
    */
   invalidateRefreshToken: async (jti) => {
     try {
@@ -155,9 +155,9 @@ const authModel = {
   },
 
   /**
-   * Invalidate all refresh tokens for a user
-   * @param {number} userId - User ID
-   * @returns {Promise<boolean>} True if tokens were invalidated
+   * 사용자의 모든 리프레시 토큰 무효화
+   * @param {number} userId - 사용자 ID
+   * @returns {Promise<boolean>} 토큰이 무효화된 경우 true
    */
   invalidateAllUserRefreshTokens: async (userId) => {
     try {
@@ -179,8 +179,8 @@ const authModel = {
   },
 
   /**
-   * Clean up expired refresh tokens
-   * @returns {Promise<number>} Number of tokens deleted
+   * 만료된 리프레시 토큰 정리
+   * @returns {Promise<number>} 삭제된 토큰 수
    */
   cleanupExpiredTokens: async () => {
     try {
@@ -197,10 +197,10 @@ const authModel = {
   },
 
   /**
-   * Change a user's nickname
-   * @param {number} userId - User ID
-   * @param {string} nickname - New nickname
-   * @returns {Promise<Object>} Updated user info
+   * 사용자의 닉네임 변경
+   * @param {number} userId - 사용자 ID
+   * @param {string} nickname - 변경할 닉네임
+   * @returns {Promise<Object>} 업데이트된 사용자 정보
    */
   changeNickModel: async (userId, nickname) => {
     try {
