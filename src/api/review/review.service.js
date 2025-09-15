@@ -1,3 +1,5 @@
+// src/api/review/review.service.js
+
 import reviewModel from "./review.model.js";
 import { db } from "../../config/database.js";
 const { pool } = db;
@@ -32,7 +34,6 @@ const fetchOneId = async (user_id) => {
   }
 };
 const fetchFiveStarReview = async () => {
-  console.log("in service");
   try {
     const rows = await reviewModel.findFiveStarReview();
     return rows;
@@ -60,14 +61,14 @@ const createReviewService = async (
   book_id,
   book_date,
   book_time,
-  photo_blob = null
+  photoUrls = []
 ) => {
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
 
-    // Create the review first
     const reviewId = await reviewModel.createReview(
+      connection,
       user_id,
       p_id,
       score,
@@ -77,11 +78,10 @@ const createReviewService = async (
       book_time
     );
 
-    // If there's a photo, save it and update the review with the photo ID
-    if (photo_blob) {
-      await reviewModel.createReviewPhoto(reviewId, photo_blob);
+    if (photoUrls && photoUrls.length > 0) {
+      await reviewModel.createReviewPhotos(connection, reviewId, photoUrls);
     }
-
+    
     await connection.commit();
     return { reviewId };
   } catch (error) {
@@ -98,18 +98,17 @@ const updateReviewWithPhotos = async (
   score,
   comment,
   keepIds = [],
-  newPhotoBuffers = []
+  newPhotoUrls = []
 ) => {
-  // 최종 개수 검증은 모델에서 실제 존재 개수와 합산해서도 체크하지만,
-  // 프리체크로 한 번 더 방어 가능(선택)
   return await reviewModel.updateReviewWithPhotos(
     reviewId,
     score,
     comment,
     keepIds,
-    newPhotoBuffers
+    newPhotoUrls
   );
 };
+
 const deleteReview = async (review_id) => {
   try {
     const result = await reviewModel.deleteReview(review_id);
@@ -120,7 +119,6 @@ const deleteReview = async (review_id) => {
   }
 };
 
-// Get all photos for a review
 const getReviewPhotos = async (review_id) => {
   try {
     const photos = await reviewModel.getReviewPhotos(review_id);
@@ -131,10 +129,19 @@ const getReviewPhotos = async (review_id) => {
   }
 };
 
-// Add a photo to a review
-const addReviewPhoto = async (review_id, photo_blob) => {
+const getReviewPhotoUrlById = async (photo_id) => {
   try {
-    const photoId = await reviewModel.addReviewPhoto(review_id, photo_blob);
+    const photo = await reviewModel.getReviewPhotoUrlById(photo_id);
+    return photo ? photo.review_photo_url : null;
+  } catch (error) {
+    console.error("Error in reviewService.getReviewPhotoUrlById:", error);
+    throw error;
+  }
+};
+
+const addReviewPhoto = async (review_id, photo_url) => {
+  try {
+    const photoId = await reviewModel.addReviewPhoto(review_id, photo_url);
     return photoId;
   } catch (error) {
     console.error("Error in reviewService.addReviewPhoto:", error);
@@ -142,7 +149,6 @@ const addReviewPhoto = async (review_id, photo_blob) => {
   }
 };
 
-// Delete a photo from a review
 const deleteReviewPhoto = async (photo_id) => {
   try {
     const result = await reviewModel.deleteReviewPhoto(photo_id);
@@ -154,15 +160,16 @@ const deleteReviewPhoto = async (photo_id) => {
 };
 
 export {
-  fetchAll,
-  fetchById,
-  fetchOneId,
-  fetchFiveStarReview,
-  fetchPharmacyReview,
-  createReviewService,
-  updateReviewWithPhotos,
-  deleteReview,
-  getReviewPhotos,
-  addReviewPhoto,
-  deleteReviewPhoto,
+ fetchAll,
+ fetchById,
+ fetchOneId,
+ fetchFiveStarReview,
+ fetchPharmacyReview,
+ createReviewService,
+ updateReviewWithPhotos,
+ deleteReview,
+ getReviewPhotos,
+ addReviewPhoto,
+ deleteReviewPhoto,
+ getReviewPhotoUrlById
 };

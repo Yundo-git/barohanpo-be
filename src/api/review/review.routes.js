@@ -1,7 +1,9 @@
+// src/api/review/review.routes.js
+
 import { Router } from "express";
 import {
-  uploadReviewPhotoSingle, // 단일
-  uploadReviewPhotos, // 다중(최대 3)
+  uploadReviewPhotoSingle,
+  uploadReviewPhotos,
 } from "../../middlewares/upload.middleware.js";
 
 import {
@@ -20,10 +22,6 @@ import {
 
 const router = Router();
 
-/**
- * 라우팅 순서: 구체 경로를 파라미터 경로 위에
- */
-
 // 조회
 router.get("/", getAllReviews);
 router.get("/fivestar", getFiveStarReview);
@@ -31,10 +29,10 @@ router.get("/:pharmacyId/pharmacyReview", getPharmacyReview);
 router.get("/:user_id/id", getReviewId);
 router.get("/:user_id", getReviewById);
 
-// 생성(단일 사진 가능: photo|image|file)
-router.post("/", uploadReviewPhotoSingle, createReviewController);
+// 생성
+router.post("/", uploadReviewPhotos, createReviewController);
 
-// 수정(다중 사진 최대 3장 + existing_photo_ids)
+// 수정
 router.put("/:review_id/update", uploadReviewPhotos, updateReviewController);
 
 // 사진 전용
@@ -45,5 +43,6 @@ router.post(
   addReviewPhotoController
 );
 router.delete("/photos/:photo_id", deleteReviewPhotoController);
+router.delete("/:review_id/del", deleteReviewController);
 
 export default router;
