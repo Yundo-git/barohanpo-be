@@ -60,7 +60,7 @@ class UserProfilePhoto {
    */
   static async createDefaultProfilePhoto(userId) {
     const defaultImageUrl =
-      "https://barohanpo.blob.vercel-storage.com/assets/sample_profile.jpeg";
+      "https://barohanpo.blob.vercel-storage.com/assets/sample_profile.svg";
     return await this.upsertProfilePhoto(userId, defaultImageUrl);
   }
 

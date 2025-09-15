@@ -6,9 +6,7 @@
 import { db } from "../../config/database.js";
 const { pool } = db;
 
-// ──────────────────────────────────────────────────────────────
-// 내부 헬퍼: 리뷰 목록에 사진 배열 붙이기 (N+1 방지: IN(…))
-// ──────────────────────────────────────────────────────────────
+
 async function attachPhotosToReviews(reviews) {
   if (!reviews || reviews.length === 0) return reviews;
 
@@ -53,13 +51,15 @@ const SELECT_REVIEW_BASE = `
   u.nickname,
 
   p.name,
-  p.address
+  p.address,
+  upp.photo_url
 `;
 
 const FROM_REVIEW_JOIN = `
   FROM reviews r
   LEFT JOIN users u      ON u.user_id = r.user_id
   LEFT JOIN pharmacy p ON p.p_id    = r.p_id
+  LEFT JOIN user_profile_photos upp ON upp.user_id = u.user_id
 `;
 
 // Define all functions
@@ -69,10 +69,8 @@ const reviewModel = {
     try {
       const [reviews] = await pool.query(`
         SELECT ${SELECT_REVIEW_BASE}
-        FROM reviews r
-        JOIN users u ON r.user_id = u.user_id
-        JOIN pharmacy p ON r.p_id = p.p_id
-        ORDER BY r.created_at DESC
+         ${FROM_REVIEW_JOIN}
+    ORDER BY r.created_at DESC
       `);
       return await attachPhotosToReviews(reviews);
     } catch (error) {
@@ -86,9 +84,7 @@ const reviewModel = {
     try {
       const [reviews] = await pool.query(
         `SELECT ${SELECT_REVIEW_BASE}
-         FROM reviews r
-         JOIN users u ON r.user_id = u.user_id
-         JOIN pharmacy p ON r.p_id = p.p_id
+        ${FROM_REVIEW_JOIN}
          WHERE r.user_id = ?
          ORDER BY r.created_at DESC`,
         [user_id]
@@ -135,9 +131,7 @@ const reviewModel = {
     try {
       const [reviews] = await pool.query(
         `SELECT ${SELECT_REVIEW_BASE}
-         FROM reviews r
-         JOIN users u ON r.user_id = u.user_id
-         JOIN pharmacy p ON r.p_id = p.p_id
+        ${FROM_REVIEW_JOIN}
          WHERE r.p_id = ?
          ORDER BY r.created_at DESC`,
         [pharmacyId]

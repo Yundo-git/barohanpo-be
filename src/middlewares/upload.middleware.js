@@ -1,9 +1,11 @@
 // src/middlewares/upload.middleware.js
 import { v4 as uuidv4 } from 'uuid';
-import { put } from '@vercel/blob';
+import { put , del} from '@vercel/blob';
 import multer from 'multer';
 import { createHash } from 'crypto';
 import { logger } from '../utils/logger.js';
+import UserProfilePhoto from '../api/profile/userProfilePhoto.model.js'; // <-- 프로필 사진 모델을 import 합니다.
+
 
 // ===== 공통 설정 =====
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -75,23 +77,62 @@ const uploadProfileImage = (req, res, next) => {
   ])(req, res, async (err) => {
     if (err) return handleUploadError(err, res);
 
+    const userId = req.user?.user_id;
+    if (!userId) {
+      // 인증 미들웨어가 먼저 실행되지 않았다면 여기서 오류 처리
+      logger.error("User ID not found.");
+      return res.status(401).json({ success: false, message: "Unauthorized: User ID not found." });
+    }
+
     let file = null;
-    if (req.files) {
-      const arr = req.files.file;
-      if (Array.isArray(arr) && arr[0]) {
-        file = arr[0];
-      }
+    if (req.files && req.files.file && Array.isArray(req.files.file) && req.files.file[0]) {
+      logger.info("File uploaded.");
+      file = req.files.file[0];
     }
 
     if (!file) {
+      logger.info("No file uploaded.");
       return next();
     }
 
     try {
-      const photoUrl = await uploadToVercelBlob(file, "profile");
-      req.uploadedUrls = [photoUrl];
+      // 1. 기존 프로필 사진 URL을 데이터베이스에서 조회합니다.
+      const existingPhotoUrl = await UserProfilePhoto.getProfilePhotoUrl(userId);
+      logger.info(`기존 프로필 사진 URL: ${existingPhotoUrl}`);
+
+      // 2. 새로운 사진을 Vercel Blob에 업로드합니다.
+      const fileExtension = file.originalname.split('.').pop();
+      const filename = `profile/${userId}-${uuidv4()}.${fileExtension}`;
+      const newBlob = await put(filename, file.buffer, {
+        access: 'public',
+        contentType: file.mimetype,
+      });
+      const newPhotoUrl = newBlob.url;
+      logger.info(`새로운 프로필 사진 업로드 완료: ${newPhotoUrl}`);
+
+      // 3. 데이터베이스에 새로운 URL로 업데이트합니다.
+      await UserProfilePhoto.upsertProfilePhoto(userId, newPhotoUrl);
+      logger.info(`DB 업데이트 완료: ${newPhotoUrl}`);
+
+      // 4. 기존 사진이 있다면 삭제를 시도합니다.
+      if (existingPhotoUrl && existingPhotoUrl.startsWith('https://')) {
+        try {
+          // 기존 URL이 Vercel Blob URL인지 확인하고 삭제
+          if (existingPhotoUrl.includes('vercel-storage.com')) {
+            await del(existingPhotoUrl); // <-- 이 부분이 핵심입니다.
+            logger.info(`기존 프로필 사진 삭제 완료: ${existingPhotoUrl}`);
+          }
+        } catch (delError) {
+          logger.error(`기존 사진 삭제 실패: ${existingPhotoUrl}`, delError);
+          // 삭제 실패는 업로드 성공에 영향을 주지 않습니다.
+        }
+      }
+
+      // 다음 미들웨어 또는 라우트 핸들러로 새 URL 전달
+      req.uploadedUrls = [newPhotoUrl];
       next();
     } catch (uploadError) {
+      logger.error("파일 업로드 처리 중 오류 발생:", uploadError);
       return res.status(500).json({ success: false, message: uploadError.message });
     }
   });

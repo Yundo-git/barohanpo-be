@@ -39,7 +39,6 @@ class ProfilePhotoController {
     try {
       const { user_id: userId } = req.params;
       
-      // 이 부분을 수정해야 합니다.
       const photoUrl = req.uploadedUrls ? req.uploadedUrls[0] : null;
   
       // 파일이 미들웨어에서 업로드되지 않은 경우
