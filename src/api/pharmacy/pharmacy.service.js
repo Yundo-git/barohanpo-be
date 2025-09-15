@@ -1,4 +1,4 @@
-const pharmacyModel = require("./pharmacyModel");
+import pharmacyModel from "./pharmacyModel.js";
 
 /**
  * 서비스 계층 (Business Logic Layer)
@@ -35,7 +35,7 @@ const fetchById = async (id) => {
   return rows;
 };
 
-module.exports = {
+export {
   fetchAll,
   fetchNearby,
   fetchById

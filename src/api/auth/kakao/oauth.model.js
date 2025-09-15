@@ -1,9 +1,10 @@
-// api/auth/kakao/kakao.model.js
-const db = require("../../../config/database");
+// api/auth/kakao/oauth.model.js
+import { db } from "../../../config/database.js";
+const { pool } = db;
 
 /** provider + provider_user_id로 기존 유저 조회 */
 async function findUserIdByProvider(provider, providerUserId) {
-  const [rows] = await db.execute(
+  const [rows] = await pool.execute(
     `SELECT u.user_id
        FROM oauth_accounts oa
        JOIN users u ON u.user_id = oa.user_id
@@ -16,7 +17,7 @@ async function findUserIdByProvider(provider, providerUserId) {
 
 /** 소셜 최초 로그인 시 유저 생성 */
 async function createUserWithOAuth({ email, nickname }) {
-  const [result] = await db.execute(
+  const [result] = await pool.execute(
     `INSERT INTO users (name, nickname, email, password, role)
      VALUES (?, ?, ?, '', 'user')`,
     [nickname || "kakao_user", nickname || "kakao_user", email ?? null]
@@ -26,7 +27,7 @@ async function createUserWithOAuth({ email, nickname }) {
 
 /** oauth_accounts 링크 저장/갱신 */
 async function upsertOAuthLink({ userId, provider, providerUserId }) {
-  await db.execute(
+  await pool.execute(
     `INSERT INTO oauth_accounts (user_id, provider, provider_user_id, connected_at)
      VALUES (?, ?, ?, NOW())
      ON DUPLICATE KEY UPDATE connected_at = CURRENT_TIMESTAMP`,
@@ -37,7 +38,7 @@ async function upsertOAuthLink({ userId, provider, providerUserId }) {
 /** 프로필 사진 저장/업데이트 (BLOB) */
 async function upsertUserProfilePhoto({ userId, mimeType, buffer }) {
   // user_id UNIQUE 라고 가정 (없다면 REPLACE INTO 사용해도 됨)
-  await db.execute(
+  await pool.execute(
     `INSERT INTO user_profile_photos (user_id, mime_type, photo_blob)
      VALUES (?, ?, ?)
      ON DUPLICATE KEY UPDATE mime_type = VALUES(mime_type),
@@ -48,7 +49,7 @@ async function upsertUserProfilePhoto({ userId, mimeType, buffer }) {
 
 /** 유저 프로필 + 사진 유무 조회 */
 async function getUserProfile(userId) {
-  const [rows] = await db.execute(
+  const [rows] = await pool.execute(
     `SELECT u.user_id, u.email, u.name, u.phone, u.nickname, u.role, u.created_at,
             CASE WHEN upp.user_id IS NULL THEN 0 ELSE 1 END AS hasPhoto
        FROM users u
@@ -60,7 +61,7 @@ async function getUserProfile(userId) {
   return rows[0] ?? null;
 }
 
-module.exports = {
+export {
   findUserIdByProvider,
   createUserWithOAuth,
   upsertOAuthLink,

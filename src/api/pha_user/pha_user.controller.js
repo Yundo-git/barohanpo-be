@@ -1,4 +1,4 @@
-const { fetchAll, fetchById } = require("./pha_user.service");
+import { fetchAll, fetchById } from "./pha_user.service.js";
 
 const getAllpha_user = async (req, res) => {
   try {
@@ -21,7 +21,7 @@ const getpha_userById = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getAllpha_user,
-  getpha_userById
+  getpha_userById,
 };

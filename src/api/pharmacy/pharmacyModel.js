@@ -1,4 +1,5 @@
-const pool = require("../../config/database");
+import { db } from "../../config/database.js";
+const { pool } = db;
 
 /**
  * Pharmacy model
@@ -56,4 +57,4 @@ const pharmacyModel = {
 };
 
 // Export the pharmacyModel object directly
-module.exports = pharmacyModel;
+export default pharmacyModel;

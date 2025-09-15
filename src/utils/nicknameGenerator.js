@@ -67,4 +67,4 @@ function generateRandomNickname() {
   return `${adj}${noun}${num}`;
 }
 
-module.exports = { generateRandomNickname };
+export { generateRandomNickname };

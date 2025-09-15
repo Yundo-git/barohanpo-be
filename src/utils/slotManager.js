@@ -1,5 +1,6 @@
-const dayjs = require("dayjs");
-const pool = require("../config/database");
+import dayjs from "dayjs";
+import { db } from "../config/database.js";
+const { pool } = db;
 
 // 운영 시간: 09:00 ~ 12:00, 14:00 ~ 17:00 (점심시간 12:00 ~ 14:00 제외)
 const TIME_SLOTS = [
@@ -66,7 +67,7 @@ class SlotManager {
    */
   async cleanupAndGenerate() {
     console.log('\n=== Starting slot cleanup and generation ===');
-    console.log(`Current time: ${new Date().toISOString()}`);
+    // console.log(`Current time: ${new Date().toISOString()}`);
     
     try {
       // 1. 오늘 이전의 모든 슬롯 삭제
@@ -153,10 +154,10 @@ class SlotManager {
       let totalSlotsGenerated = 0;
 
       for (const { p_id } of pharmacies) {
-        console.log(`\n[generateSlots] Processing pharmacy ID: ${p_id}`);
+        // console.log(`\n[generateSlots] Processing pharmacy ID: ${p_id}`);
         
         // 이미 생성된 날짜 조회
-        console.log(`[generateSlots] Checking existing slots for pharmacy ${p_id}...`);
+        // console.log(`[generateSlots] Checking existing slots for pharmacy ${p_id}...`);
         const [existingDatesRows] = await conn.query(
           `SELECT DISTINCT slot_date FROM reservation_slot 
            WHERE p_id = ? AND slot_date BETWEEN ? AND ?`,
@@ -166,11 +167,11 @@ class SlotManager {
         const existingDates = new Set(
           existingDatesRows.map(row => dayjs(row.slot_date).format('YYYY-MM-DD'))
         );
-        console.log(`[generateSlots] Found ${existingDates.size} existing dates for pharmacy ${p_id}`);
+        // console.log(`[generateSlots] Found ${existingDates.size} existing dates for pharmacy ${p_id}`);
 
         // 생성되지 않은 날짜만 필터링
         const datesToInsert = slotDates.filter(date => !existingDates.has(date));
-        console.log(`[generateSlots] Will generate slots for ${datesToInsert.length} new dates`);
+        // console.log(`[generateSlots] Will generate slots for ${datesToInsert.length} new dates`);
 
         // 새로운 슬롯 생성
         let slotsGenerated = 0;
@@ -193,7 +194,7 @@ class SlotManager {
         }
 
         totalSlotsGenerated += datesToInsert.length * TIME_SLOTS.length;
-        console.log(`Generated slots for pharmacy ${p_id}: ${slotsGenerated} slots (${datesToInsert.length} days)`);
+        // console.log(`Generated slots for pharmacy ${p_id}: ${slotsGenerated} slots (${datesToInsert.length} days)`);
       }
 
       console.log(`Total slots generated: ${totalSlotsGenerated}`);
@@ -222,4 +223,4 @@ class SlotManager {
 // 싱글톤 인스턴스 생성
 const slotManager = new SlotManager();
 
-module.exports = slotManager;
+export default slotManager;

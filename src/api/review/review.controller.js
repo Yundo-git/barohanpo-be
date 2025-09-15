@@ -1,14 +1,16 @@
-const {
+import {
   fetchAll,
   fetchById,
   fetchOneId,
-  createReviewService,
   fetchFiveStarReview,
-  // updateReview,
-  updateReviewWithPhotos,
   fetchPharmacyReview,
+  createReviewService,
+  updateReviewWithPhotos,
   deleteReview,
-} = require("./review.service");
+  getReviewPhotos,
+  addReviewPhoto,
+  deleteReviewPhoto,
+} from "./review.service.js";
 
 //모든 리뷰 내용 조회
 const getAllReviews = async (req, res) => {
@@ -241,7 +243,7 @@ const deleteReviewController = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getAllReviews,
   getReviewById,
   getReviewId,

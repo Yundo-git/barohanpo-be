@@ -1,4 +1,4 @@
-const axios = require("axios");
+import axios from "axios";
 const TOKEN_URL = "https://kauth.kakao.com/oauth/token";
 const USERINFO_URL = "https://kapi.kakao.com/v2/user/me";
 
@@ -29,4 +29,4 @@ async function fetchKakaoUser(accessToken) {
   return data; // { id, kakao_account: { email, profile: { nickname, ... } } }
 }
 
-module.exports = { exchangeCodeForToken, fetchKakaoUser };
+export { exchangeCodeForToken, fetchKakaoUser };

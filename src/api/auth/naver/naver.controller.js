@@ -1,6 +1,6 @@
-const axios = require("axios");
-const { setRefreshCookie } = require("../../../utils/cookies");
-const { loginOrSignupWithNaver } = require("./naver.service");
+import axios from "axios";
+import { setRefreshCookie } from "../../../utils/cookies.js";
+import { loginOrSignupWithNaver } from "./naver.service.js";
 
 const NAVER_AUTHORIZE_URL = "https://nid.naver.com/oauth2.0/authorize";
 const NAVER_TOKEN_URL = "https://nid.naver.com/oauth2.0/token";
@@ -88,4 +88,4 @@ function safeNext(next) {
   return next;
 }
 
-module.exports = { redirectToNaverLogin, naverCallback };
+export { redirectToNaverLogin, naverCallback };

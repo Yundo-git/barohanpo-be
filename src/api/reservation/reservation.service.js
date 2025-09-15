@@ -1,7 +1,10 @@
 // services/reservation.service.js
-const { booksModel } = require("./reservation.Model");
-const { pool } = require("../../config/database");
-const { log } = require("winston");
+import booksModel from "./reservation.Model.js";
+import { db } from "../../config/database.js";
+const { pool } = db;
+import winston from "winston";
+
+const { log } = winston;
 
 const fetchSlotsInRange = async (p_id, from, to) => {
   try {
@@ -113,11 +116,11 @@ const fetchcancelList = async (user_id) => {
   }
 };
 
-module.exports = {
+export {
   fetchSlotsInRange,
   fetchAvailableDates,
   reservationService,
   fetchBooks,
-  fetchCancelBooks, // Fixed typo in function name
+  fetchCancelBooks,
   fetchcancelList,
 };

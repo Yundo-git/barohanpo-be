@@ -1,15 +1,15 @@
 // services/token.service.js
-const crypto = require("crypto");
-const jwt = require("jsonwebtoken");
-const db = require("../config/database");
-const logger = require("../utils/logger");
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
+import { db } from "../config/database.js";
+import { logger } from "../utils/logger.js";
 
-const {
+import {
   JWT_ACCESS_SECRET,
   JWT_REFRESH_SECRET,
   ACCESS_TOKEN_TTL,
   REFRESH_TOKEN_TTL,
-} = require("../config/jwt.config");
+} from "../config/jwt.config.js";
 
 /** ------- 내부 유틸 ------- */
 function ensureEnv() {
@@ -154,15 +154,17 @@ async function rotateRefresh(oldRefresh) {
 
 ensureEnv();
 
-module.exports = {
-  // 외부에 노출할 API
+// Export test utilities separately
+export const _testOnly = {
+  generateTokenId,
+};
+
+// Export main API
+export {
   issueJwtPair,
-  rotateRefresh,
+  isRefreshValid,
   revokeByJti,
   revokeAllForUser,
-  isRefreshValid,
-
-  // 필요 시 유틸도 노출
-  generateTokenId,
+  rotateRefresh,
   sha256,
 };

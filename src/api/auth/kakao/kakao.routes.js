@@ -1,7 +1,8 @@
 // api/auth/kakao/kakao.routes.js
-const router = require("express").Router();
+import { Router } from "express";
+const router = Router();
 console.log("[kakao.routes] loaded"); // 서버 부팅 시 1회 출력
-const { redirectToKakaoLogin, kakaoCallback } = require("./kakao.controller");
+import { redirectToKakaoLogin, kakaoCallback } from "./kakao.controller.js";
 
 router.use((req, _res, next) => {
   console.log("[kakao.routes] hit:", req.method, req.originalUrl);
@@ -17,4 +18,4 @@ router.get("/callback", (req, res, next) => {
   return kakaoCallback(req, res, next);
 });
 
-module.exports = router;
+export default router;

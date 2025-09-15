@@ -1,7 +1,7 @@
-const express = require("express");
-const { getAllpha_user, getpha_userById } = require("./pha_user.controller");
+import { Router } from "express";
+import { getAllpha_user, getpha_userById } from "./pha_user.controller.js";
 
-const router = express.Router();
+const router = Router();
 
 /**
  * @swagger
@@ -65,4 +65,4 @@ const router = express.Router();
 router.get("/", getAllpha_user);
 router.get("/:p_id", getpha_userById);
 
-module.exports = router;
+export default router;

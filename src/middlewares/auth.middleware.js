@@ -1,17 +1,17 @@
-const jwt = require('jsonwebtoken');
-const config = require('../config/config');
-const { verifyToken } = require('../config/jwt.config');
+import jwt from 'jsonwebtoken';
+import config from '../config/config.js';
+import { verifyToken } from '../config/jwt.config.js';
 
 /**
  * 인증 미들웨어
  * 헤더의 Authorization 토큰 또는 쿠키의 accessToken을 검증합니다.
  */
 const isAuthenticated = (req, res, next) => {
-  console.log("[Auth Middleware] Checking authentication for request:", req.method, req.originalUrl);
+  // console.log("[Auth Middleware] Checking authentication for request:", req.method, req.originalUrl);
   try {
     // 헤더에서 토큰 추출 (Bearer 토큰 또는 쿠키에서)
     const token = req.headers.authorization?.split(' ')[1] || req.cookies?.accessToken;
-    console.log("[Auth Middleware] Extracted token:", token);
+    // console.log("[Auth Middleware] Extracted token:", token);
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -23,7 +23,7 @@ const isAuthenticated = (req, res, next) => {
     const { success, decoded, message } = verifyToken(token);
     
     if (!success || decoded.isRefreshToken) { 
-      console.log("[Auth Middleware] Token verification failed:", message);
+      // console.log("[Auth Middleware] Token verification failed:", message);
       return res.status(401).json({
         success: false,
         message: message || '유효하지 않은 토큰입니다.'
@@ -32,11 +32,11 @@ const isAuthenticated = (req, res, next) => {
     
     // 사용자 정보를 요청 객체에 저장
     req.user = decoded;
-    console.log("[Auth Middleware] User authenticated:", req.user);
+    // console.log("[Auth Middleware] User authenticated:", req.user);
     
     next();
   } catch (error) {
-    console.error("[Auth Middleware] Error verifying token:", error);
+    // console.error("[Auth Middleware] Error verifying token:", error);
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
@@ -56,10 +56,10 @@ const isAuthenticated = (req, res, next) => {
  * isAuthenticated 미들웨어 이후에 사용해야 합니다.
  */
 const isAdmin = (req, res, next) => {
-  console.log("[Auth Middleware] Checking admin role for user:", req.user);
+  // console.log("[Auth Middleware] Checking admin role for user:", req.user);
   try {
     if (req.user && req.user.role === 'admin') {
-      console.log("[Auth Middleware] User is admin, allowing access.");
+      // console.log("[Auth Middleware] User is admin, allowing access.");
       return next();
     }
     
@@ -106,8 +106,4 @@ const hasRole = (roles = []) => {
   };
 };
 
-module.exports = {
-  isAuthenticated,
-  isAdmin,
-  hasRole
-};;
+export { isAuthenticated, isAdmin, hasRole };;

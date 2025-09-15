@@ -1,5 +1,6 @@
-const { reviewModel } = require("./review.model");
-const db = require("../../config/database");
+import reviewModel from "./review.model.js";
+import { db } from "../../config/database.js";
+const { pool } = db;
 
 const fetchAll = async () => {
   try {
@@ -152,7 +153,7 @@ const deleteReviewPhoto = async (photo_id) => {
   }
 };
 
-module.exports = {
+export {
   fetchAll,
   fetchById,
   fetchOneId,

@@ -1,4 +1,5 @@
-const { pool } = require("../../config/database");
+import { db } from "../../config/database.js";
+const { pool } = db;
 
 const pha_userModel = {
   findAll: async () => {
@@ -23,4 +24,4 @@ const pha_userModel = {
   },
 };
 
-module.exports = { pha_userModel };
+export { pha_userModel };

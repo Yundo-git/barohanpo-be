@@ -1,10 +1,11 @@
 // models/booksModel.js
-const db = require("../../config/database");
+import { db } from "../../config/database.js";
+const { pool } = db;
 
-const booksModel = {
+ const booksModel = {
   findSlotsByPharmacy: async (p_id, from, to) => {
     try {
-      const [rows] = await db.query(
+      const [rows] = await pool.query(
         `SELECT
           DATE(slot_date) AS date,
           SUM(CASE WHEN is_available = 1 THEN 1 ELSE 0 END) > 0 AS is_available
@@ -24,7 +25,7 @@ const booksModel = {
   findAvailableDates: async (p_id) => {
     try {
       // 1. 먼저 예약 가능한 날짜들을 가져옵니다.
-      const [rows] = await db.query(
+      const [rows] = await pool.query(
         `SELECT DISTINCT DATE(slot_date) as date 
          FROM reservation_slot 
          WHERE p_id = ? 
@@ -62,7 +63,7 @@ const booksModel = {
           });
         });
       }
-      console.log("availableDates", availableDates);
+      // console.log("availableDates", availableDates);
       return availableDates;
     } catch (error) {
       console.error("Error in findAvailableDates:", error);
@@ -121,7 +122,7 @@ const booksModel = {
   findBooks: async (user_id) => {
     console.log("in model user_id", user_id);
     try {
-      const [rows] = await db.query(`SELECT * FROM books WHERE user_id = ? AND status= 'pending'`, [
+      const [rows] = await pool.query(`SELECT * FROM books WHERE user_id = ? AND status= 'pending'`, [
         user_id,
       ]);
       return rows;
@@ -158,7 +159,7 @@ const booksModel = {
 
   findcancelBooks: async (user_id) => {
     try {
-      const [rows] = await db.query(
+      const [rows] = await pool.query(
         `SELECT * FROM books WHERE user_id = ? AND status = 'canceled'`,
         [user_id]
       );
@@ -171,4 +172,4 @@ const booksModel = {
   },
 };
 
-module.exports = { booksModel };
+export default booksModel;

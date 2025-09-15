@@ -1,6 +1,6 @@
-const axios = require("axios");
-const { loginOrSignupWithKakao } = require("./kakao.service");
-const { setRefreshCookie } = require("../../../utils/cookies");
+import axios from "axios";
+import { loginOrSignupWithKakao } from "./kakao.service.js";
+import { setRefreshCookie } from "../../../utils/cookies.js";
 
 const KAKAO_AUTHORIZE_URL = "https://kauth.kakao.com/oauth/authorize";
 const KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token";
@@ -113,4 +113,4 @@ function safeNext(next) {
   return next;
 }
 
-module.exports = { redirectToKakaoLogin, kakaoCallback };
+export { redirectToKakaoLogin, kakaoCallback };

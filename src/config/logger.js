@@ -1,7 +1,13 @@
-const winston = require('winston');
-const path = require('path');
+import winston from 'winston';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 const { createLogger, format, transports } = winston;
 const { combine, timestamp, printf, colorize, json } = format;
+
+// Get directory name in ES module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const logFormat = printf(({ level, message, timestamp, ...metadata }) => {
   let msg = `${timestamp} [${level}]: ${message}`;
@@ -60,4 +66,4 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-module.exports = logger;
+export default logger;

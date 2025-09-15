@@ -1,19 +1,24 @@
-const express = require("express");
-const cors = require("cors");
-const path = require("path");
-const cookieParser = require("cookie-parser");
-const compression = require("compression");
-const helmet = require("helmet");
-const xss = require("xss-clean");
-const hpp = require("hpp");
-const rateLimit = require("express-rate-limit");
-const swaggerUi = require("swagger-ui-express");
+import express from "express";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from 'url';
+import cookieParser from "cookie-parser";
+import compression from "compression";
+import helmet from "helmet";
+import xss from "xss-clean";
+import hpp from "hpp";
+import rateLimit from "express-rate-limit";
+import swaggerUi from "swagger-ui-express";
 
-const globalRoutes = require("./routes/index");
-const swaggerSpec = require("./config/swagger");
-const config = require("./config/config");
-const logger = require("./utils/logger");
-const { errorHandler, notFoundHandler } = require("./middlewares/errorHandler");
+import globalRoutes from "./routes/index.js";
+import swaggerSpec from "./config/swagger.js";
+import config from "./config/config.js";
+import { logger } from "./utils/logger.js";
+import { errorHandler, notFoundHandler } from "./middlewares/errorHandler.js";
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -26,7 +31,7 @@ const corsOptions = {
     
     // In development, allow all origins and log them
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`Allowing CORS for development origin: ${origin}`);
+      // console.log(`Allowing CORS for development origin: ${origin}`);
       return callback(null, true);
     }
     
@@ -217,4 +222,4 @@ app.use(errorHandler);
 //스웨거 라우터 추가
 // app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-module.exports = app;
+export default app;

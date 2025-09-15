@@ -1,6 +1,11 @@
 // Load environment variables first
-const dotenv = require("dotenv");
-const path = require('path');
+import dotenv from "dotenv";
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables from .env file
 const envPath = path.resolve(__dirname, '..', '.env');
@@ -16,8 +21,8 @@ if (missingVars.length > 0) {
   process.exit(1);
 }
 
-const app = require("./app");
-const slotManager = require("./utils/slotManager");
+import app from "./app.js";
+import slotManager from "./utils/slotManager.js";
 
 const PORT = process.env.PORT || 5000;
 

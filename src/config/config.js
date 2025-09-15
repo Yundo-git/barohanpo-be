@@ -1,5 +1,5 @@
 // 환경 변수 로드
-const dotenv = require('dotenv');
+import dotenv from 'dotenv';
 dotenv.config();
 
 // 데이터베이스 연결 설정
@@ -68,11 +68,15 @@ const loggerConfig = {
   maxFiles: process.env.LOG_MAX_FILES || '14d',
 };
 
-module.exports = {
-  ...serverConfig,
+const config = {
   db: dbConfig,
+  server: serverConfig,
   jwt: jwtConfig,
   cors: corsConfig,
   api: apiConfig,
   logger: loggerConfig,
+  nodeEnv: process.env.NODE_ENV || 'development',
+  port: process.env.PORT || 3000,
 };
+
+export default config;

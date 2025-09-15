@@ -1,6 +1,11 @@
-const winston = require("winston");
-const path = require("path");
-const config = require("../config/config");
+import winston from "winston";
+import path from "path";
+import { fileURLToPath } from 'url';
+import config from "../config/config.js";
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // In CommonJS, __dirname is already available
 
@@ -88,4 +93,4 @@ if (config.nodeEnv !== "production") {
   );
 }
 
-module.exports = logger;
+export { logger };

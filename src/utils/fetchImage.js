@@ -1,4 +1,4 @@
-const axios = require("axios");
+import axios from "axios";
 
 /**
  * 원격 이미지 URL을 받아서 { mimeType, buffer } 반환
@@ -13,4 +13,4 @@ async function fetchImageAsBuffer(url) {
   return { mimeType, buffer: Buffer.from(res.data) };
 }
 
-module.exports = { fetchImageAsBuffer };
+export { fetchImageAsBuffer };

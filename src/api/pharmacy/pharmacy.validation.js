@@ -1,4 +1,4 @@
-const Joi = require("joi");
+import Joi from "joi";
 
 /**
  * 약국 생성/수정시 사용하는 공통 필드 스키마
@@ -49,7 +49,7 @@ const idParamSchema = Joi.object({
   }),
 });
 
-module.exports = {
+export {
   createPharmacySchema,
   updatePharmacySchema,
   idParamSchema

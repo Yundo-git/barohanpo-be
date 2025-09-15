@@ -1,10 +1,10 @@
-const express = require("express");
-const {
+import { Router } from "express";
+import {
   uploadReviewPhotoSingle, // 단일
   uploadReviewPhotos, // 다중(최대 3)
-} = require("../../middlewares/upload.middleware");
+} from "../../middlewares/upload.middleware.js";
 
-const {
+import {
   getAllReviews,
   getReviewById,
   createReviewController,
@@ -16,9 +16,9 @@ const {
   getReviewPhotosController,
   addReviewPhotoController,
   deleteReviewPhotoController,
-} = require("./review.controller");
+} from "./review.controller.js";
 
-const router = express.Router();
+const router = Router();
 
 /**
  * 라우팅 순서: 구체 경로를 파라미터 경로 위에
@@ -46,4 +46,4 @@ router.post(
 );
 router.delete("/photos/:photo_id", deleteReviewPhotoController);
 
-module.exports = router;
+export default router;

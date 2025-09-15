@@ -1,10 +1,10 @@
 // utils/cookies.js
-const COOKIE_NAME = 'refresh_token';
+export const COOKIE_NAME = 'refresh_token';
 // 프론트에서 /api/* 로만 백엔드 호출하므로 '/api' 로 통일.
 // (예전에 '/api/auth/refresh-token' 으로 세팅했다면, 둘 다 지워주도록 clear에서 두 경로 모두 시도)
-const COOKIE_PATH = '/api';
+export const COOKIE_PATH = '/api';
 
-function setRefreshCookie(res, token) {
+export function setRefreshCookie(res, token) {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -14,7 +14,7 @@ function setRefreshCookie(res, token) {
   });
 }
 
-function clearRefreshCookie(res) {
+export function clearRefreshCookie(res) {
   // 현재 표준 경로
   res.clearCookie(COOKIE_NAME, {
     httpOnly: true,
@@ -32,4 +32,4 @@ function clearRefreshCookie(res) {
   });
 }
 
-module.exports = { setRefreshCookie, clearRefreshCookie, COOKIE_NAME, COOKIE_PATH };
+// All exports are now named exports at the top of the file

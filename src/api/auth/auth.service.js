@@ -1,37 +1,37 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
-const { authModel } = require("./auth.Model");
-const UserProfilePhoto = require("../profile/userProfilePhoto.Model");
-
+import { authModel } from "./auth.Model.js";
+import UserProfilePhoto from "../profile/userProfilePhoto.model.js";
+import * as TokenService from "../../services/token.service.js";
 // DB & Logger
-const pool = require("../../config/database");
-const logger = require("../../utils/logger");
+import { db } from "../../config/database.js";
+const { pool } = db;
+import { logger } from "../../utils/logger.js";
 
 // 토큰 전용 서비스
-const TokenService = require("../../services/token.service");
+import { issueJwtPair, rotateRefresh, revokeByJti, revokeAllForUser } from "../../services/token.service.js";
 
 // 랜덤 닉네임 유틸
-const { generateRandomNickname } = require("../../utils/nicknameGenerator");
+import { generateRandomNickname } from "../../utils/nicknameGenerator.js";
 
 /**
  * 공용: DB row → API 응답용 사용자 객체로 정규화
  */
 function toPublicUser(row) {
-  const userId = Number(row.user_id ?? row.id);
+  if (!row) return null;
+  
   return {
-    user_id: userId,
-    email: row.email ?? null,
-    name: row.name ?? null,
-    phone: row.phone ?? null,
-    nickname: row.nickname ?? null,
-    role: row.role ?? "user",
-    // 프로필 이미지는 별도 테이블이므로 여기선 내려주지 않음
-    profileImage: null,
-    profileImageUrl: null,
-    profileImageVersion: null,
-    // users 테이블엔 updated_at 없으므로 created_at을 대체 사용
-    updated_at: row.updated_at ?? row.created_at ?? null,
+    user_id: Number(row.user_id || row.id),
+    email: row.email || null,
+    name: row.name || null,
+    phone: row.phone || null,
+    nickname: row.nickname || null,
+    role: row.role || 'user',
+    profileImageUrl: row.photo_url || row.profileImageUrl || null,
+    profileImageVersion: row.photo_version || row.profileImageVersion || null,
+    created_at: row.created_at || new Date().toISOString(),
+    updated_at: row.updated_at || row.created_at || new Date().toISOString()
   };
 }
 
@@ -165,7 +165,7 @@ async function login(email, password) {
     phone: user.phone,
   };
 
-  const { accessToken, refreshToken } = await TokenService.issueJwtPair(
+  const { accessToken, refreshToken } = await issueJwtPair(
     userPayload
   );
 
@@ -251,10 +251,10 @@ async function getCurrentUser(userId) {
   }
 
   const [rows] = await pool.query(
-    `SELECT 
-       user_id, email, name, phone, role, nickname, created_at
-     FROM users
-     WHERE user_id = ? LIMIT 1`,
+    `SELECT u.user_id, u.email, u.name, u.phone, u.role, u.nickname, u.created_at,
+    upp.photo_url AS profileImageUrl 
+    FROM users u 
+    LEFT JOIN user_profile_photos upp ON u.user_id = upp.user_id WHERE u.user_id = ? LIMIT 1`,
     [uid]
   );
 
@@ -287,12 +287,12 @@ async function changeNickService(userId, nickname) {
   return authModel.changeNickModel(userId, nickname);
 }
 
-module.exports = {
+export {
   signup,
   login,
   refreshAccessToken,
   logout,
   getCurrentUser,
   invalidateRefreshToken,
-  changeNickService,
+  changeNickService as changeNick,
 };

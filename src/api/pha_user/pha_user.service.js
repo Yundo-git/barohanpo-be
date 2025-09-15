@@ -1,4 +1,4 @@
-const { pha_userModel } = require("./pha_user.Model");
+import { pha_userModel } from "./pha_user.Model.js";
 
 const fetchAll = async () => {
   try {
@@ -20,7 +20,7 @@ const fetchById = async (p_id) => {
   }
 };
 
-module.exports = {
+export {
   fetchAll,
   fetchById,
   pha_userModel

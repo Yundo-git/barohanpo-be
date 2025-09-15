@@ -1,4 +1,6 @@
-const pool = require("../../config/database");
+import { db } from "../../config/database.js";
+import { logger } from "../../utils/logger.js";
+const { pool } = db;
 
 /**
  * 인증 관련 데이터베이스 모델
@@ -55,11 +57,17 @@ const authModel = {
   findByEmail: async (email) => {
     try {
       const [rows] = await pool.query(
-        `SELECT user_id, email, password, name, nickname, phone, role, created_at
-         FROM users 
-         WHERE email = ?`,
-        [email]
+        `SELECT
+        u.user_id, u.email, u.password, u.name, u.nickname, u.phone, u.role, u.created_at,
+        upp.photo_url as profileImageUrl
+      FROM users u
+      LEFT JOIN user_profile_photos upp
+        ON u.user_id = upp.user_id
+      WHERE u.email = ?`,
+     [email]
       );
+      logger.info("rowsㄴㄴㄴㄴㄴㄴ", rows);
+
       return rows[0] || null;
     } catch (error) {
       console.error("Error in authModel.findByEmail:", error);
@@ -75,11 +83,16 @@ const authModel = {
   findById: async (userId) => {
     try {
       const [rows] = await pool.query(
-        `SELECT user_id, email, name, nickname, phone, role, created_at
-         FROM users 
-         WHERE user_id = ?`,
-        [userId]
+        `SELECT
+        u.user_id, u.email, u.name, u.nickname, u.phone, u.role, u.created_at,
+        upp.photo_url as profileImageUrl
+      FROM users u
+      LEFT JOIN user_profile_photos upp
+        ON u.user_id = upp.user_id
+      WHERE u.user_id = ?`,
+     [userId]
       );
+      console.log("rows", rows);
       return rows[0] || null;
     } catch (error) {
       console.error("Error in authModel.findById:", error);
@@ -219,4 +232,4 @@ const authModel = {
   },
 };
 
-module.exports = { authModel };
+export { authModel };

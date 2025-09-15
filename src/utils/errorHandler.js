@@ -149,7 +149,7 @@ const notFoundHandler = (req, res) => {
   sendError(res, `Cannot ${req.method} ${req.originalUrl}`, 'NOT_FOUND');
 };
 
-module.exports = {
+export {
   createError,
   sendError,
   errorHandler,

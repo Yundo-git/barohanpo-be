@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
-const dotenv = require('dotenv');
-const logger = require('../utils/logger');
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import { logger } from '../utils/logger.js';
 
 dotenv.config();
 
@@ -131,17 +131,17 @@ const decodeToken = (token) => {
  * @returns {string} A unique token ID
  */
 const generateTokenId = () => {
-  return require('crypto').randomBytes(16).toString('hex');
+  return import('crypto').then(crypto => crypto.randomBytes(16).toString('hex'));
 };
 
-module.exports = { 
+export { 
   JWT_ACCESS_SECRET,
   JWT_REFRESH_SECRET,
   ACCESS_TOKEN_TTL,
   REFRESH_TOKEN_TTL,
-  generateAccessToken, 
-  generateRefreshToken, 
-  verifyToken, 
-  decodeToken, 
-  generateTokenId 
+  generateAccessToken,
+  generateRefreshToken,
+  verifyToken,
+  decodeToken,
+  generateTokenId
 };

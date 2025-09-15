@@ -1,7 +1,7 @@
-const jwt = require("jsonwebtoken");
-const authService = require("./auth.service");
-const { sendError } = require("../../utils/errorHandler");
-const { setRefreshCookie, clearRefreshCookie } = require("../../utils/cookies");
+import jwt from "jsonwebtoken";
+import { signup as signupService, login as loginService, refreshAccessToken, getCurrentUser as getCurrentUserService, logout as logoutService, changeNick } from "./auth.service.js";
+import { sendError } from "../../utils/errorHandler.js";
+import { setRefreshCookie, clearRefreshCookie } from "../../utils/cookies.js";
 
 /**
  * 회원가입
@@ -19,7 +19,7 @@ const signup = async (req, res) => {
     }
 
     // 서비스는 { user, token, refreshToken } 반환
-    const { user, token, refreshToken } = await authService.signup(
+    const { user, token, refreshToken } = await signupService(
       email,
       password,
       name,
@@ -73,7 +73,7 @@ const login = async (req, res) => {
     }
 
     // 서비스는 { user, token, refreshToken } 반환
-    const result = await authService.login(email, password);
+    const result = await loginService(email, password);
 
     // refresh_token만 쿠키로 저장 (access는 쿠키 금지)
     setRefreshCookie(res, result.refreshToken);
@@ -127,7 +127,7 @@ const refreshToken = async (req, res) => {
     }
 
     // 서비스는 { accessToken, refreshToken?(로테이션 시), user } 반환
-    const result = await authService.refreshAccessToken(refreshTokenFromReq);
+    const result = await refreshAccessToken(refreshTokenFromReq);
 
     // 로테이션된 refresh_token이 있으면 쿠키 갱신
     if (result.refreshToken) {
@@ -165,7 +165,7 @@ const getCurrentUser = async (req, res) => {
       });
     }
 
-    const user = await authService.getCurrentUser(userId);
+    const user = await getCurrentUserService(userId);
     return res.status(200).json({
       success: true,
       data: user,
@@ -210,9 +210,9 @@ const logout = async (req, res) => {
         );
 
         if (decoded?.jti) {
-          await authService.invalidateRefreshToken(decoded.jti);
+          await logoutService(req.user.user_id, decoded.jti);
         } else if (req.user?.user_id) {
-          await authService.logout(req.user.user_id);
+          await logoutService(req.user.user_id);
         }
       } catch (e) {
         console.error("Error during token invalidation:", e.message);
@@ -233,10 +233,10 @@ const logout = async (req, res) => {
 };
 
 /** 닉네임 변경 */
-const changeNick = async (req, res) => {
+const changeNickController = async (req, res) => {
   const { user_id, nickname } = req.body;
   try {
-    const result = await authService.changeNickService(user_id, nickname);
+    const result = await changeNick(user_id, nickname);
     return res.status(200).json({
       success: true,
       data: result,
@@ -250,11 +250,11 @@ const changeNick = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   signup,
   login,
   refreshToken,
   logout,
   getCurrentUser,
-  changeNick,
+  changeNickController as changeNick,
 };

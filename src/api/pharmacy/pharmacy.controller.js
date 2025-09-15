@@ -1,5 +1,5 @@
-const pharmacyService = require("./pharmacy.service");
-const debug = require("debug");
+import * as pharmacyService from "./pharmacy.service.js";
+import debug from "debug";
 
 // Namespace for this controller's logs
 const log = debug("app:pharmacy");
@@ -173,7 +173,7 @@ const getpharmacyById = async (req, res, next) => {
   }
 };
 
-module.exports = {
+export {
   getAllpharmacy,
   getNearbypharmacy,
   getpharmacyById

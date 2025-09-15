@@ -1,9 +1,9 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-// 우리가 방금 export한 이름과 동일하게 import
-const { uploadMiddleware } = require("../../middlewares/upload.middleware");
-const ProfilePhotoController = require("./profilePhoto.controller");
+// Import with ES modules
+import { uploadMiddleware } from "../../middlewares/upload.middleware.js";
+import ProfilePhotoController from "./profilePhoto.controller.js";
 
 // ── Swagger 주석은 그대로 유지 ──
 
@@ -26,4 +26,4 @@ router.post(
   ProfilePhotoController.setDefaultProfilePhoto.bind(ProfilePhotoController)
 );
 
-module.exports = router;
+export default router;

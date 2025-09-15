@@ -1,7 +1,8 @@
-const router = require('express').Router();
-const { redirectToNaverLogin, naverCallback } = require('./naver.controller');
+import { Router } from 'express';
+const router = Router();
+import { redirectToNaverLogin, naverCallback } from './naver.controller.js';
 
 router.get('/login', redirectToNaverLogin);
 router.get('/callback', naverCallback);
 
-module.exports = router;
+export default router;

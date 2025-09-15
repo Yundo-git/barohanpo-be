@@ -1,15 +1,15 @@
 // routes/reservation.router.js
-const express = require("express");
-const {
+import { Router } from "express";
+import {
   getSlotsByPharmacy,
   getAvailableDates,
   createReservation,
   getBook,
   cancelBook,
   getcancelList,
-} = require("./reservation.controller");
+} from "./reservation.controller.js";
 
-const router = express.Router();
+const router = Router();
 
 router.get("/:p_id", getSlotsByPharmacy);
 router.get("/:p_id/available-dates", getAvailableDates);
@@ -18,4 +18,4 @@ router.post("/:user_id/books/cancel", cancelBook);
 router.get("/:user_id/books/cancel/list", getcancelList);
 router.post("/", createReservation);
 
-module.exports = router;
+export default router;

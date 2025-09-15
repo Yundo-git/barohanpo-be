@@ -1,13 +1,13 @@
 // controllers/reservation.controller.js
-const debug = require("debug");
-const {
+import debug from "debug";
+import {
   fetchSlotsInRange,
   fetchAvailableDates,
   reservationService,
   fetchCancelBooks,
   fetchBooks,
   fetchcancelList,
-} = require("./reservation.service");
+} from "./reservation.service.js";
 
 const log = debug("app:reservation");
 
@@ -57,7 +57,7 @@ const getAvailableDates = async (req, res) => {
   try {
     const data = await fetchAvailableDates(p_id);
     res.json(data); // 프론트에서는 data 배열만 받도록
-    log("slots", data);
+    // log("slots", data);
   } catch (error) {
     log("Error in getAvailableDates:", error);
     res.status(500).json({ success: false, error: error.message });
@@ -86,7 +86,7 @@ const getBook = async (req, res) => {
   try {
     const data = await fetchBooks(user_id);
     res.json(data);
-    log("books", data);
+    // log("books", data);
   } catch (error) {
     log("Error in getBooks:", error);
     res.status(500).json({ success: false, error: error.message });
@@ -122,7 +122,7 @@ const getcancelList = async (req, res) => {
       data: Array.isArray(data) ? data : [],
       count: Array.isArray(data) ? data.length : 0,
     });
-    log("cancellation list", data);
+    // log("cancellation list", data);
   } catch (error) {
     log("Error in getcancelList:", error);
     res.status(200).json({
@@ -133,7 +133,7 @@ const getcancelList = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getSlotsByPharmacy,
   getAvailableDates,
   createReservation,

@@ -1,13 +1,13 @@
-const {
+import {
   findUserIdByProvider,
   createUserWithOAuth,
   upsertOAuthLink,
   upsertUserProfilePhoto,
   getUserProfile,
-} = require("./oauth.model");
-const { fetchImageAsBuffer } = require("../../../utils/fetchImage");
-const TokenService = require("../../../services/token.service");
-const { generateRandomNickname } = require("../../../utils/nicknameGenerator");
+} from "./oauth.model.js";
+import { fetchImageAsBuffer } from "../../../utils/fetchImage.js";
+import { issueJwtPair } from "../../../services/token.service.js";
+import { generateRandomNickname } from "../../../utils/nicknameGenerator.js";
 
 /**
  * 카카오 로그인 또는 회원가입 처리
@@ -55,9 +55,7 @@ async function loginOrSignupWithKakao(kakaoProfile) {
     nickname: profile.nickname,
     phone: profile.phone,
   };
-  const { accessToken, refreshToken } = await TokenService.issueJwtPair(
-    userPayload
-  );
+  const { accessToken, refreshToken } = await issueJwtPair(userPayload);
 
   // 7) 응답 데이터 구성
   return {
@@ -71,4 +69,4 @@ async function loginOrSignupWithKakao(kakaoProfile) {
   };
 }
 
-module.exports = { loginOrSignupWithKakao };
+export { loginOrSignupWithKakao };

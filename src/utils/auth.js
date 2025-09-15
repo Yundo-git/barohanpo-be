@@ -1,4 +1,8 @@
-const bcrypt = require('bcryptjs');
+import bcrypt from 'bcryptjs';
+import { webcrypto } from 'crypto';
+
+// Use webcrypto if available (browser), otherwise use node:crypto
+const crypto = webcrypto || (await import('node:crypto')).webcrypto;
 
 /**
  * Hash a password
@@ -29,8 +33,7 @@ const generateRandomPassword = (length = 12) => {
   const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]\\:;?><,./-=';
   let password = '';
   const values = new Uint32Array(length);
-  
-  window.crypto.getRandomValues(values);
+  crypto.getRandomValues(values);
   
   for (let i = 0; i < length; i++) {
     password += charset[values[i] % charset.length];
@@ -39,8 +42,4 @@ const generateRandomPassword = (length = 12) => {
   return password;
 };
 
-module.exports = {
-  hashPassword,
-  comparePasswords,
-  generateRandomPassword
-};
+export { hashPassword, comparePasswords, generateRandomPassword };

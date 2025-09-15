@@ -1,15 +1,16 @@
-const express = require("express");
-const {
+import express from "express";
+import {
   signup,
   login,
   refreshToken,
   logout,
   getCurrentUser,
   changeNick,
-} = require("./auth.controller");
-const { isAuthenticated } = require("../../middlewares/auth.middleware");
-const kakaoRoutes = require("./kakao/kakao.routes");
-const naverRoutes = require("./naver/naver.routes");
+} from "./auth.controller.js";
+import { isAuthenticated } from "../../middlewares/auth.middleware.js";
+import kakaoRoutes from "./kakao/kakao.routes.js";
+import naverRoutes from "./naver/naver.routes.js";
+
 const router = express.Router();
 
 // 공개 라우트
@@ -108,4 +109,4 @@ router.put("/:user_id/nickname", changeNick); // PUT  /api/auth/:user_id/nicknam
 //           type: string
 //           format: date-time
 
-module.exports = router;
+export default router;
