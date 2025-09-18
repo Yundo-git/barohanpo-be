@@ -8,7 +8,7 @@ const pool = mysql.createPool({
   debug: false,
   trace: false,
   enableKeepAlive: true,
-  keepAliveInitialDelay: 10000
+  keepAliveInitialDelay: 10000,
 });
 
 // 연결 풀 이벤트 리스너
@@ -29,7 +29,7 @@ pool.on("enqueue", () => {
 //   let connection;
 //   try {
 //     // 데이터베이스 연결 정보 로깅 (비밀번호는 제외)
-//     console.log("🔍 Attempting to connect to database with config:", {
+//     console.log(" Attempting to connect to database with config:", {
 //       host: config.db.host,
 //       port: config.db.port,
 //       database: config.db.database,
@@ -39,30 +39,30 @@ pool.on("enqueue", () => {
 
 //     // 연결 시도
 //     connection = await pool.getConnection();
-//     console.log("✅ Successfully connected to MySQL server");
+//     console.log("Successfully connected to MySQL server");
 
 //     // 데이터베이스 존재 여부 확인
 //     const [dbs] = await connection.query("SHOW DATABASES LIKE ?", [config.db.database]);
 //     if (dbs.length === 0) {
-//       console.error(`❌ Database '${config.db.database}' does not exist`);
+//       console.error(` Database '${config.db.database}' does not exist`);
 //       throw new Error(`Database '${config.db.database}' does not exist`);
 //     }
-//     console.log(`✅ Database '${config.db.database}' exists`);
+//     console.log(` Database '${config.db.database}' exists`);
 
 //     // 테이블 존재 여부 확인
 //     const [tables] = await connection.query("SHOW TABLES");
-//     console.log(`📊 Found ${tables.length} tables in the database`);
+//     console.log(`Found ${tables.length} tables in the database`);
 
 //     // 데이터베이스 버전 확인
 //     const [rows] = await connection.query("SELECT VERSION() as version");
 //     const version = rows[0].version;
 
-//     console.log("✅ Database connection successful!", {
+//     console.log(" Database connection successful!", {
 //       version,
 //       threadId: connection.threadId,
 //     });
 //   } catch (error) {
-//     console.error("❌ Database connection failed!");
+//     console.error(" Database connection failed!");
 //     console.error("Error details:", {
 //       code: error.code,
 //       errno: error.errno,
@@ -71,7 +71,7 @@ pool.on("enqueue", () => {
 //       message: error.message,
 //       stack: error.stack
 //     });
-    
+
 //     console.error("Connection config:", {
 //       host: config.db.host,
 //       port: config.db.port,
@@ -161,7 +161,7 @@ export const db = {
   pool,
   getConnection: () => pool.getConnection(),
   query: (sql, params) => pool.query(sql, params),
-  execute: (sql, params) => pool.execute(sql, params)
+  execute: (sql, params) => pool.execute(sql, params),
 };
 
 // Export the database connection utilities
@@ -173,5 +173,5 @@ export default {
   getConnection: () => pool.getConnection(),
   query: (sql, params) => pool.query(sql, params),
   execute: (sql, params) => pool.execute(sql, params),
-  withTransaction
+  withTransaction,
 };

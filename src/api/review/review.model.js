@@ -1,5 +1,3 @@
-// src/api/review/review.model.js
-
 import { db } from "../../config/database.js";
 const { pool } = db;
 
@@ -16,16 +14,16 @@ async function attachPhotosToReviews(reviews) {
   );
 
   const photosByReviewId = new Map();
-  photos.forEach(photo => {
+  photos.forEach((photo) => {
     if (!photosByReviewId.has(photo.review_id)) {
       photosByReviewId.set(photo.review_id, []);
     }
     photosByReviewId.get(photo.review_id).push(photo);
   });
 
-  return reviews.map(review => ({
+  return reviews.map((review) => ({
     ...review,
-    photos: photosByReviewId.get(review.review_id) || []
+    photos: photosByReviewId.get(review.review_id) || [],
   }));
 }
 
@@ -141,7 +139,16 @@ const reviewModel = {
   },
 
   // * 리뷰 생성 (트랜잭션 제외, 서비스에서 처리)
-  async createReview(conn, user_id, p_id, score, comment, book_id, book_date, book_time) {
+  async createReview(
+    conn,
+    user_id,
+    p_id,
+    score,
+    comment,
+    book_id,
+    book_date,
+    book_time
+  ) {
     const [result] = await conn.query(
       `INSERT INTO reviews (user_id, p_id, score, comment, book_id, book_date, book_time)
         VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -154,7 +161,7 @@ const reviewModel = {
   async createReviewPhotos(conn, review_id, photoUrls) {
     if (!photoUrls || photoUrls.length === 0) return;
 
-    const values = photoUrls.map(url => [review_id, url]);
+    const values = photoUrls.map((url) => [review_id, url]);
     const [result] = await conn.query(
       `INSERT INTO review_photos (review_id, review_photo_url) VALUES ?`,
       [values]
@@ -228,7 +235,13 @@ const reviewModel = {
   },
 
   // * 리뷰 수정 + 사진 부분 업데이트(유지/추가/삭제)
-  async updateReviewWithPhotos(reviewId, score, comment, keepIds = [], newPhotoUrls = []) {
+  async updateReviewWithPhotos(
+    reviewId,
+    score,
+    comment,
+    keepIds = [],
+    newPhotoUrls = []
+  ) {
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
@@ -247,15 +260,14 @@ const reviewModel = {
           [reviewId, keepIds]
         );
       } else {
-        await conn.query(
-          `DELETE FROM review_photos WHERE review_id = ?`,
-          [reviewId]
-        );
+        await conn.query(`DELETE FROM review_photos WHERE review_id = ?`, [
+          reviewId,
+        ]);
       }
 
       // 3. Add new photos
       if (newPhotoUrls.length > 0) {
-        const values = newPhotoUrls.map(url => [reviewId, url]);
+        const values = newPhotoUrls.map((url) => [reviewId, url]);
         await conn.query(
           `INSERT INTO review_photos (review_id, review_photo_url) VALUES ?`,
           [values]
@@ -279,10 +291,9 @@ const reviewModel = {
     try {
       await conn.beginTransaction();
 
-      await conn.query(
-        `DELETE FROM review_photos WHERE review_id = ?`,
-        [review_id]
-      );
+      await conn.query(`DELETE FROM review_photos WHERE review_id = ?`, [
+        review_id,
+      ]);
 
       const [result] = await conn.query(
         `DELETE FROM reviews WHERE review_id = ?`,
@@ -298,7 +309,7 @@ const reviewModel = {
     } finally {
       conn.release();
     }
-  }
+  },
 };
 
 export default reviewModel;

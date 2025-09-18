@@ -1,122 +1,120 @@
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-import { logger } from '../utils/logger.js';
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+import { logger } from "../utils/logger.js";
 
 dotenv.config();
 
-// Environment variables - validation happens in TokenService
+// 환경 변수 - 유효성 검사는 TokenService에서 수행됨
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
-const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || '15m';
-const REFRESH_TOKEN_TTL = process.env.REFRESH_TOKEN_TTL || '7d';
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const ACCESS_TOKEN_TTL = process.env.ACCESS_TOKEN_TTL || "15m";
+const REFRESH_TOKEN_TTL = process.env.REFRESH_TOKEN_TTL || "7d";
+const NODE_ENV = process.env.NODE_ENV || "development";
 
-// Validate required environment variables
-const requiredVars = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'];
-const missingVars = requiredVars.filter(varName => !process.env[varName]);
+// 필수 환경 변수 검증
+const requiredVars = ["JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET"];
+const missingVars = requiredVars.filter((varName) => !process.env[varName]);
 
 if (missingVars.length > 0) {
-  const errorMsg = `Missing required environment variables: ${missingVars.join(', ')}`;
+  const errorMsg = `필요한 환경 변수가 없습니다: ${missingVars.join(", ")}`;
   logger.error(errorMsg);
   throw new Error(errorMsg);
 }
 
 /**
- * Generate an access token with user payload
- * @param {Object} payload - User data to include in the token
- * @param {string} [jti] - Optional JWT ID for token invalidation
- * @returns {string} JWT access token
+ * 사용자 페이로드로 액세스 토큰 생성
+ * @param {Object} payload - 토큰에 포함될 사용자 데이터
+ * @param {string} [jti] - 토큰 무효화를 위한 선택적 JWT ID
+ * @returns {string} JWT 액세스 토큰
  */
 const generateAccessToken = (payload, jti) => {
-  // Create a new payload object without jti if it exists
   const { jti: _, ...payloadWithoutJti } = payload;
-  
+
   return jwt.sign(
-    { 
-      ...payloadWithoutJti, 
-      type: 'access'
+    {
+      ...payloadWithoutJti,
+      type: "access",
     },
     JWT_ACCESS_SECRET,
     {
       expiresIn: ACCESS_TOKEN_TTL,
       issuer: "barohanpo",
-      subject: 'access',
-      jwtid: jti  // Set jti in the options, not in the payload
+      subject: "access",
+      jwtid: jti,
     }
   );
 };
 
 /**
- * Generate a refresh token with user payload
- * @param {Object} payload - User data to include in the token
- * @param {string} jti - JWT ID for token invalidation
- * @returns {string} JWT refresh token
+ * 사용자 페이로드로 리프레시 토큰 생성
+ * @param {Object} payload - 토큰에 포함될 사용자 데이터
+ * @param {string} jti - 토큰 무효화를 위한 JWT ID
+ * @returns {string} JWT 리프레시 토큰
  */
 const generateRefreshToken = (payload, jti) => {
   if (!jti) {
-    throw new Error('jti (JWT ID) is required for refresh tokens');
+    throw new Error("jti (JWT ID) is required for refresh tokens");
   }
-  
-  // Create a new payload object without jti if it exists
+
   const { jti: _, ...payloadWithoutJti } = payload;
-  
+
   return jwt.sign(
-    { 
-      ...payloadWithoutJti, 
-      type: 'refresh'
+    {
+      ...payloadWithoutJti,
+      type: "refresh",
     },
     JWT_REFRESH_SECRET,
     {
       expiresIn: REFRESH_TOKEN_TTL,
       issuer: "barohanpo",
-      subject: 'refresh',
-      jwtid: jti  // Set jti in the options, not in the payload
+      subject: "refresh",
+      jwtid: jti,
     }
   );
 };
 
 /**
- * Verify a JWT token
- * @param {string} token - The JWT token to verify
- * @param {boolean} isRefresh - Whether this is a refresh token
+ * JWT 토큰 검증
+ * @param {string} token - 검증할 JWT 토큰
+ * @param {boolean} isRefresh - 리프레시 토큰 여부
  * @returns {{success: boolean, decoded: Object|null, message: string|undefined}}
  */
 const verifyToken = (token, isRefresh = false) => {
   try {
     const secret = isRefresh ? JWT_REFRESH_SECRET : JWT_ACCESS_SECRET;
     const decoded = jwt.verify(token, secret);
-    
-    // Verify token type matches expected
-    const expectedType = isRefresh ? 'refresh' : 'access';
+
+    // 토큰 유형 클레임 추가
+    const expectedType = isRefresh ? "refresh" : "access";
     if (decoded.type !== expectedType) {
-      throw new Error(`Invalid token type: expected ${expectedType} token`);
+      throw new Error(`잘못된 토큰 유형: ${expectedType} 토큰이 예상됩니다`);
     }
-    
+
     return {
       success: true,
-      decoded
+      decoded,
     };
   } catch (error) {
-    let message = 'Invalid or expired token';
-    
-    if (error.name === 'TokenExpiredError') {
-      message = 'Token has expired';
-    } else if (error.name === 'JsonWebTokenError') {
-      message = 'Invalid token';
+    let message = "잘못된 또는 만료된 토큰";
+
+    if (error.name === "TokenExpiredError") {
+      message = "토큰이 만료되었습니다";
+    } else if (error.name === "JsonWebTokenError") {
+      message = "잘못된 토큰";
     }
-    
+
     return {
       success: false,
       decoded: null,
-      message
+      message,
     };
   }
 };
 
 /**
- * Decode a JWT token without verification
- * @param {string} token - The JWT token to decode
- * @returns {Object|null} The decoded token payload or null if invalid
+ * 검증 없이 JWT 토큰 디코딩
+ * @param {string} token - 디코딩할 JWT 토큰
+ * @returns {Object|null} 디코딩된 토큰 페이로드 또는 유효하지 않은 경우 null
  */
 const decodeToken = (token) => {
   try {
@@ -127,14 +125,16 @@ const decodeToken = (token) => {
 };
 
 /**
- * Generate a unique token ID (jti) for token invalidation
- * @returns {string} A unique token ID
+ * 토큰 무효화를 위한 고유 토큰 ID(jti) 생성
+ * @returns {string} 고유한 토큰 ID
  */
 const generateTokenId = () => {
-  return import('crypto').then(crypto => crypto.randomBytes(16).toString('hex'));
+  return import("crypto").then((crypto) =>
+    crypto.randomBytes(16).toString("hex")
+  );
 };
 
-export { 
+export {
   JWT_ACCESS_SECRET,
   JWT_REFRESH_SECRET,
   ACCESS_TOKEN_TTL,
@@ -143,5 +143,5 @@ export {
   generateRefreshToken,
   verifyToken,
   decodeToken,
-  generateTokenId
+  generateTokenId,
 };

@@ -22,33 +22,33 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// 1) CORS Configuration (should be at the top)
+// 1) CORS 설정 (가장 상단에 위치해야 함)
 const corsOptions = {
-  // Allow all origins in development, specific ones in production
+  // 개발 환경에서는 모든 오리진 허용, 프로덕션에서는 특정 오리진만 허용
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, postman)
+    // 오리진이 없는 요청 허용 (모바일 앱, curl, postman 등)
     if (!origin) return callback(null, true);
     
-    // In development, allow all origins and log them
+    // 개발 환경에서는 모든 오리진을 허용하고 로깅
     if (process.env.NODE_ENV !== 'production') {
       // console.log(`Allowing CORS for development origin: ${origin}`);
       return callback(null, true);
     }
     
-    // In production, only allow specific origins
+    // 프로덕션 환경에서는 특정 오리진만 허용
     const allowedOrigins = [
       'https://barohanpo-fe.vercel.app',
       'https://www.barohanpo.xyz',
       'https://barohanpo.xyz',
-      'http://localhost:3000', // For local development
-      'http://localhost:5000'  // For local API access
+      'http://localhost:3000', // 로컬 개발용
+      'http://localhost:5000'  // 로컬 API 접근용
     ];
     
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     
-    // Check if the origin matches the regex pattern for localhost with any port
+    // 로컬호스트의 임의 포트에 대한 정규식 패턴 일치 확인
     const localhostRegex = /^https?:\/\/localhost(:[0-9]+)?$/;
     if (localhostRegex.test(origin)) {
       return callback(null, true);
@@ -58,13 +58,13 @@ const corsOptions = {
     return callback(new Error('Not allowed by CORS'));
   },
   
-  // Required for cookies, authorization headers with HTTPS
+  // 쿠키, HTTPS 인증 헤더에 필요
   credentials: true,
   
-  // Allowed HTTP methods
+  // 허용된 HTTP 메소드
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
   
-  // Allowed request headers
+  // 허용된 요청 헤더
   allowedHeaders: [
     'Content-Type',
     'Authorization',
@@ -81,10 +81,10 @@ const corsOptions = {
     'User-Agent',
     'If-None-Match',
     'If-Modified-Since',
-    'Range' // For byte-range requests
+    'Range' // 바이트 범위 요청을 위함
   ],
   
-  // Exposed headers
+  // 노출할 헤더
   exposedHeaders: [
     'Content-Length',
     'Content-Range',
@@ -99,17 +99,17 @@ const corsOptions = {
     'Access-Control-Allow-Credentials'
   ],
   
-  // Set max age for preflight requests (in seconds)
+  // 프리플라이트 요청의 최대 유효 시간(초 단위)
   maxAge: 86400, // 24 hours
   
-  // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  // 일부 구형 브라우저(IE11, 일부 스마트TV)는 204 상태 코드에서 문제가 발생할 수 있음
   optionsSuccessStatus: 200
 };
 
-// Apply CORS with the above configuration
+// 위 설정으로 CORS 미들웨어 적용
 app.use(cors(corsOptions));
 
-// Handle preflight requests for all routes
+// 모든 라우트에 대한 프리플라이트 요청 처리
 app.options('*', cors(corsOptions));
 
 // 2) Swagger UI (CORS 다음에 위치)
@@ -156,46 +156,48 @@ app.use(xss());
 app.use(hpp());
 app.use(compression());
 
-// 1) General API rate limiting (applied to all routes by default)
+// 1) 일반 API 요청 제한 (기본적으로 모든 라우트에 적용)
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  windowMs: 15 * 60 * 1000, // 15분
+  max: 100, // 각 IP당 15분당 100회 요청 제한
+  standardHeaders: true, // `RateLimit-*` 헤더에 요청 제한 정보 반환
+  legacyHeaders: false, // `X-RateLimit-*` 헤더 비활성화
+  // 요청 제한에 대한 응답 메시지
   message: JSON.stringify({
     success: false,
-    error: 'Too many requests, please try again later.'
+    error: '요청 제한 초과, 나중에 다시 시도하세요.'
   }),
-  // Skip rate limiting for successful requests (status < 400)
+  // 성공한 요청(상태 코드 < 400)은 요청 제한에서 제외
   skipSuccessfulRequests: true,
-  // Skip rate limiting for authenticated users with higher limits
+  // 관리자 권한이 있는 인증된 사용자는 요청 제한에서 제외
   skip: (req) => req.user && req.user.role === 'admin',
 });
 
-// 2) Stricter rate limiting for authentication endpoints
+// 2) 인증 엔드포인트에 대한 더 엄격한 요청 제한
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 requests per windowMs for auth endpoints
+  windowMs: 15 * 60 * 1000, // 15분
+  max: 10, // 인증 엔드포인트에 대해 IP당 15분당 10회 요청 제한
   standardHeaders: true,
   legacyHeaders: false,
+  // 요청 제한에 대한 응답 메시지
   message: JSON.stringify({
     success: false,
     error: 'Too many login attempts, please try again later.'
   }),
-  // Apply rate limiting to all requests, including successful ones
+  // 성공한 요청을 포함한 모든 요청에 요청 제한 적용
   skipSuccessfulRequests: false,
-  // Skip rate limiting for whitelisted IPs (e.g., your office IP)
+  // 화이트리스트에 있는 IP는 요청 제한에서 제외 (예: 사무실 IP)
   skip: (req) => {
     const whitelist = ['127.0.0.1', '::1'];
     return whitelist.includes(req.ip);
   },
 });
 
-// 3) Apply rate limiting to specific routes
-app.use('/api', apiLimiter); // Apply general rate limiting to all API routes
-app.use('/api/auth/login', authLimiter); // Stricter rate limiting for login
-app.use('/api/auth/signup', authLimiter); // Stricter rate limiting for signup
-app.use('/api/auth/refresh-token', authLimiter); // Stricter rate limiting for token refresh
+// 3) 특정 라우트에 요청 제한 적용
+app.use('/api', apiLimiter); // 모든 API 라우트에 일반 요청 제한 적용
+app.use('/api/auth/login', authLimiter); // 로그인에 더 엄격한 요청 제한
+app.use('/api/auth/signup', authLimiter); // 회원가입에 더 엄격한 요청 제한
+app.use('/api/auth/refresh-token', authLimiter); // 토큰 갱신에 더 엄격한 요청 제한
 
 // 2) ROUTES
 // 상태 확인 엔드포인트

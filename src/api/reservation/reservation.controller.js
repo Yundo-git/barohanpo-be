@@ -1,4 +1,3 @@
-// controllers/reservation.controller.js
 import debug from "debug";
 import {
   fetchSlotsInRange,

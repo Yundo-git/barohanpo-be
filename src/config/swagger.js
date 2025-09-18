@@ -1,14 +1,13 @@
 import swaggerJSDoc from "swagger-jsdoc";
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from "path";
+import { fileURLToPath } from "url";
 
-// Get directory name in ES module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const options = {
   definition: {
-    openapi: "3.0.0",
+    openapi: "3.0.0", // OpenAPI 버전
     info: {
       title: "BaroHanpo API",
       version: "1.0.0",
@@ -17,7 +16,7 @@ const options = {
     servers: [
       {
         url: "http://localhost:5000",
-        description: "개발 서버"
+        description: "개발 서버",
       },
     ],
     components: {

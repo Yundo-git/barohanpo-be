@@ -1,5 +1,3 @@
-// src/api/review/review.controller.js
-
 import {
   fetchAll,
   fetchById,
@@ -78,8 +76,9 @@ const getPharmacyReview = async (req, res) => {
 
 // 리뷰 생성
 const createReviewController = async (req, res) => {
-  const { user_id, book_id, p_id, score, comment, book_date, book_time } = req.body;
-  
+  const { user_id, book_id, p_id, score, comment, book_date, book_time } =
+    req.body;
+
   const photoUrls = req.uploadedUrls || [];
 
   try {
@@ -191,37 +190,48 @@ const deleteReviewPhotoController = async (req, res) => {
 const updateReviewController = async (req, res) => {
   const { review_id } = req.params;
   const { score, comment, existing_photo_ids } = req.body;
-  
+
   const newPhotoUrls = req.uploadedUrls || [];
-  
+
   let keepIds = [];
   if (existing_photo_ids) {
     try {
       const parsed = JSON.parse(existing_photo_ids);
       if (Array.isArray(parsed)) {
-        keepIds = parsed.map(v => Number(v)).filter(n => Number.isFinite(n) && n > 0);
+        keepIds = parsed
+          .map((v) => Number(v))
+          .filter((n) => Number.isFinite(n) && n > 0);
       }
     } catch (e) {
-      return res.status(400).json({ success: false, message: "existing_photo_ids 파싱 실패" });
+      return res
+        .status(400)
+        .json({ success: false, message: "existing_photo_ids 파싱 실패" });
     }
   }
 
   try {
     // 1. DB에서 현재 리뷰와 연결된 모든 사진 URL을 가져옵니다.
     const currentPhotos = await getReviewPhotos(Number(review_id));
-    
+
     // 2. 삭제할 사진 ID 목록을 만듭니다.
-    const photosToDelete = currentPhotos.filter(photo => !keepIds.includes(photo.review_photo_id));
-    
+    const photosToDelete = currentPhotos.filter(
+      (photo) => !keepIds.includes(photo.review_photo_id)
+    );
+
     // 3. Vercel Blob에서 사진들을 삭제합니다.
     if (photosToDelete.length > 0) {
-      const deletePromises = photosToDelete.map(photo => del(photo.review_photo_url).catch(e => {
-        logger.error(`Failed to delete blob for URL: ${photo.review_photo_url}`, e);
-        return null; // 실패해도 Promise.all이 멈추지 않도록 null 반환
-      }));
+      const deletePromises = photosToDelete.map((photo) =>
+        del(photo.review_photo_url).catch((e) => {
+          logger.error(
+            `Failed to delete blob for URL: ${photo.review_photo_url}`,
+            e
+          );
+          return null; // 실패해도 Promise.all이 멈추지 않도록 null 반환
+        })
+      );
       await Promise.all(deletePromises);
     }
-    
+
     // 4. DB를 업데이트합니다.
     const result = await updateReviewWithPhotos(
       Number(review_id),
@@ -230,7 +240,7 @@ const updateReviewController = async (req, res) => {
       keepIds,
       newPhotoUrls
     );
-    
+
     return res.json({
       success: true,
       message: "리뷰가 성공적으로 수정되었습니다.",
@@ -248,9 +258,9 @@ const updateReviewController = async (req, res) => {
 // 리뷰 삭제
 const deleteReviewController = async (req, res) => {
   const { review_id } = req.params; // review_id가 이 줄에서 정의됩니다.
-  
+
   // *** 이 로깅을 아래로 옮겨야 합니다. ***
-  logger.info(`삭제 요청 수신: review_id = ${review_id}`); 
+  logger.info(`삭제 요청 수신: review_id = ${review_id}`);
 
   try {
     // 1. DB에서 리뷰에 연결된 모든 사진 URL을 가져옵니다.
@@ -259,17 +269,22 @@ const deleteReviewController = async (req, res) => {
 
     // 2. Vercel Blob에서 사진들을 삭제합니다.
     if (photosToDelete.length > 0) {
-      const deletePromises = photosToDelete.map(photo => del(photo.review_photo_url).catch(e => {
-        logger.error(`Failed to delete blob for URL: ${photo.review_photo_url}`, e);
-        return null;
-      }));
+      const deletePromises = photosToDelete.map((photo) =>
+        del(photo.review_photo_url).catch((e) => {
+          logger.error(
+            `Failed to delete blob for URL: ${photo.review_photo_url}`,
+            e
+          );
+          return null;
+        })
+      );
       await Promise.all(deletePromises);
     }
-    
+
     // 3. DB에서 리뷰를 삭제합니다.
     const result = await deleteReview(review_id);
     logger.info(`리뷰 삭제 결과: ${result}`);
-    
+
     res.json({ success: true, data: result });
   } catch (error) {
     logger.error("Error in reviewController.deleteReview:", error);
@@ -287,5 +302,5 @@ export {
   deleteReviewController,
   getReviewPhotosController,
   addReviewPhotoController,
-  deleteReviewPhotoController
+  deleteReviewPhotoController,
 };

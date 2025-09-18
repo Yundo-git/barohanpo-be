@@ -1,5 +1,3 @@
-// src/api/review/review.service.js
-
 import reviewModel from "./review.model.js";
 import { db } from "../../config/database.js";
 const { pool } = db;
@@ -81,7 +79,7 @@ const createReviewService = async (
     if (photoUrls && photoUrls.length > 0) {
       await reviewModel.createReviewPhotos(connection, reviewId, photoUrls);
     }
-    
+
     await connection.commit();
     return { reviewId };
   } catch (error) {
@@ -160,16 +158,16 @@ const deleteReviewPhoto = async (photo_id) => {
 };
 
 export {
- fetchAll,
- fetchById,
- fetchOneId,
- fetchFiveStarReview,
- fetchPharmacyReview,
- createReviewService,
- updateReviewWithPhotos,
- deleteReview,
- getReviewPhotos,
- addReviewPhoto,
- deleteReviewPhoto,
- getReviewPhotoUrlById
+  fetchAll,
+  fetchById,
+  fetchOneId,
+  fetchFiveStarReview,
+  fetchPharmacyReview,
+  createReviewService,
+  updateReviewWithPhotos,
+  deleteReview,
+  getReviewPhotos,
+  addReviewPhoto,
+  deleteReviewPhoto,
+  getReviewPhotoUrlById,
 };

@@ -1,8 +1,7 @@
-// models/booksModel.js
 import { db } from "../../config/database.js";
 const { pool } = db;
 
- const booksModel = {
+const booksModel = {
   findSlotsByPharmacy: async (p_id, from, to) => {
     try {
       const [rows] = await pool.query(
@@ -122,9 +121,10 @@ const { pool } = db;
   findBooks: async (user_id) => {
     console.log("in model user_id", user_id);
     try {
-      const [rows] = await pool.query(`SELECT * FROM books WHERE user_id = ? AND status= 'pending'`, [
-        user_id,
-      ]);
+      const [rows] = await pool.query(
+        `SELECT * FROM books WHERE user_id = ? AND status= 'pending'`,
+        [user_id]
+      );
       return rows;
     } catch (error) {
       console.error("Error in findBooks:", error);
@@ -140,11 +140,11 @@ const { pool } = db;
          WHERE user_id = ? AND book_id = ? AND status = 'pending'`,
         [user_id, book_id]
       );
-      
+
       // Return success status and affected rows info
       return {
         success: true,
-        affectedRows: result.affectedRows || 0
+        affectedRows: result.affectedRows || 0,
       };
     } catch (error) {
       console.error("Error in postCancelBooks:", error);
@@ -152,7 +152,7 @@ const { pool } = db;
       return {
         success: false,
         error: error.message,
-        affectedRows: 0
+        affectedRows: 0,
       };
     }
   },

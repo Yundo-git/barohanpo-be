@@ -1,5 +1,3 @@
-// src/api/review/review.routes.js
-
 import { Router } from "express";
 import {
   uploadReviewPhotoSingle,

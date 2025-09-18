@@ -1,4 +1,3 @@
-// services/reservation.service.js
 import booksModel from "./reservation.Model.js";
 import { db } from "../../config/database.js";
 const { pool } = db;
