@@ -198,13 +198,29 @@ const authModel = {
   cleanupExpiredTokens: async () => {
     try {
       const [result] = await pool.query(
-        `DELETE FROM refresh_tokens 
-         WHERE expires_at < NOW() OR revoked = TRUE`
+        `DELETE FROM refresh_tokens WHERE expires_at < NOW()`
       );
-
       return result.affectedRows;
     } catch (error) {
-      console.error("Error in authModel.cleanupExpiredTokens:", error);
+      logger.error("Error cleaning up expired tokens:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * 닉네임으로 사용자 조회
+   * @param {string} nickname - 조회할 사용자 닉네임
+   * @returns {Promise<Object|null>} 사용자 정보 또는 찾을 수 없는 경우 null
+   */
+  findByNickname: async (nickname) => {
+    try {
+      const [rows] = await pool.query(
+        `SELECT * FROM users WHERE nickname = ?`,
+        [nickname]
+      );
+      return rows.length > 0 ? rows[0] : null;
+    } catch (error) {
+      logger.error("Error finding user by nickname:", error);
       throw error;
     }
   },
