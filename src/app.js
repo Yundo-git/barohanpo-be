@@ -41,9 +41,10 @@ const corsOptions = {
       'https://www.barohanpo.xyz',
       'https://barohanpo.xyz',
       'http://localhost:3000', // 로컬 개발용
-      'http://localhost:5000'  // 로컬 API 접근용
+      'http://localhost:5000',  // 로컬 API 접근용
+      'http://192.168.75.49:3000' // 로컬 API 접근용
     ];
-    
+     
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }

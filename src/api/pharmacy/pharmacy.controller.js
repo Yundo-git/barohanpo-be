@@ -147,6 +147,7 @@ const getNearbypharmacy = async (req, res, next) => {
   const { lat, lng } = req.query;
   log("req.query", req.query);
   log("latitude=%s longitude=%s", lat, lng);
+  console.log(`[Pharmacy][nearby] ${new Date().toISOString()} - lat=${lat}, lng=${lng}, ip=${req.ip}, ua=${req.get('user-agent')}`);
   try {
     const pharmacies = await pharmacyService.fetchNearby(lat, lng, 4);
     res.status(200).json({
@@ -158,7 +159,6 @@ const getNearbypharmacy = async (req, res, next) => {
     next(error);
   }
 };
-
 const getpharmacyById = async (req, res, next) => {
   const { p_id } = req.params;
   log("p_id", p_id);
