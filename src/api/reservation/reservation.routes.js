@@ -7,6 +7,7 @@ import {
   getBook,
   cancelBook,
   getcancelList,
+  sendEmailController,
 } from "./reservation.controller.js";
 
 const router = Router();
@@ -17,5 +18,6 @@ router.get("/:user_id/books", getBook);
 router.post("/:user_id/books/cancel", cancelBook);
 router.get("/:user_id/books/cancel/list", getcancelList);
 router.post("/", createReservation);
+router.post("/send-email", sendEmailController);
 
 export default router;

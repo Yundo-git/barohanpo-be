@@ -6,6 +6,7 @@ import {
   fetchCancelBooks,
   fetchBooks,
   fetchcancelList,
+  sendEmailService,
 } from "./reservation.service.js";
 
 const log = debug("app:reservation");
@@ -132,6 +133,43 @@ const getcancelList = async (req, res) => {
   }
 };
 
+const sendEmailController = async (req, res) => {
+  // 프론트엔드에서 요청한 필드명과 일치시켜야 합니다.
+  console.log("in controller req.body", req.body);
+  const { username, pharmacyname, reservationdate, reservationtime, memo } =
+    req.body;
+
+  if (!username || !pharmacyname || !reservationdate || !reservationtime) {
+    return res
+      .status(400)
+      .json({ success: false, error: "필수 이메일 정보가 누락되었습니다." });
+  }
+
+  try {
+    console.log("in controller usename", username);
+    console.log("in controller pharmacyname", pharmacyname);
+    console.log("in controller reservationdate", reservationdate);
+    console.log("in controller reservationtime", reservationtime);
+    console.log("in controller memo", memo);
+    // user_id, p_id 대신 메일 발송에 필요한 데이터(이메일, 약국 이름 등)를 서비스에 전달
+    const result = await sendEmailService(
+      username,
+      pharmacyname,
+      reservationdate,
+      reservationtime,
+      memo
+    );
+    // 예약 자체는 이미 성공했으므로, 메일 요청 수락으로 200/201 응답을 보냅니다.
+    res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    // 메일 발송 실패 시 500 응답을 보냅니다.
+    log("Error in sendEmailController:", error);
+    res
+      .status(500)
+      .json({ success: false, error: error.message || "Failed to send email" });
+  }
+};
+
 export {
   getSlotsByPharmacy,
   getAvailableDates,
@@ -139,4 +177,5 @@ export {
   getBook,
   cancelBook,
   getcancelList,
+  sendEmailController,
 };

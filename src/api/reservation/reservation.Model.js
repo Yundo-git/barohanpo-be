@@ -172,4 +172,14 @@ const booksModel = {
   },
 };
 
+// const sendEmail = async (user_id, p_id, date, time, memo) => {
+//   try {
+//     const rows = await booksModel.sendEmail(user_id, p_id, date, time, memo);
+//     return rows;
+//   } catch (error) {
+//     console.error("Error in sendEmail:", error);
+//     throw error;
+//   }
+// };
+
 export default booksModel;

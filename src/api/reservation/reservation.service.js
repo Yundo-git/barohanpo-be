@@ -2,6 +2,7 @@ import booksModel from "./reservation.Model.js";
 import { db } from "../../config/database.js";
 const { pool } = db;
 import winston from "winston";
+import { sendReservationConfirmationEmail } from "../../utils/emailSender.js";
 
 const { log } = winston;
 
@@ -115,6 +116,40 @@ const fetchcancelList = async (user_id) => {
   }
 };
 
+const sendEmailService = async (
+  username,
+  pharmacyname,
+  reservationdate,
+  reservationtime,
+  memo
+) => {
+  try {
+    // DB 모델 대신 Resend 유틸리티 함수를 호출
+    console.log("in service username", username);
+    console.log("in service pharmacyname", pharmacyname);
+    console.log("in service reservationdate", reservationdate);
+    console.log("in service reservationtime", reservationtime);
+    console.log("in service memo", memo);
+    const result = await sendReservationConfirmationEmail({
+      username: username,
+      pharmacyname: pharmacyname,
+      reservationdate: reservationdate,
+      reservationtime: reservationtime,
+      memo: memo,
+    });
+
+    if (!result.success) {
+      throw new Error(`Failed to send email: ${result.error}`);
+    }
+
+    return { message: "Email sent successfully", id: result.id };
+  } catch (error) {
+    console.error("Error in sendEmailService:", error);
+    // 메일 발송 실패는 예약 실패와 다르게 처리.
+    // 여기서는 throw하여 상위 컨트롤러에서 500 응답.
+    throw error;
+  }
+};
 export {
   fetchSlotsInRange,
   fetchAvailableDates,
@@ -122,4 +157,5 @@ export {
   fetchBooks,
   fetchCancelBooks,
   fetchcancelList,
+  sendEmailService,
 };
