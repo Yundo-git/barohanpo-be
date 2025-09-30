@@ -122,9 +122,13 @@ const booksModel = {
     console.log("in model user_id", user_id);
     try {
       const [rows] = await pool.query(
-        `SELECT * FROM books WHERE user_id = ? AND status= 'pending'`,
+        `SELECT b.*, p.name as pharmacy_name 
+         FROM books b
+         JOIN pharmacy p ON b.p_id = p.p_id
+         WHERE b.user_id = ? AND b.status = 'pending'`,
         [user_id]
       );
+      console.log("findBooks", rows);
       return rows;
     } catch (error) {
       console.error("Error in findBooks:", error);
@@ -160,7 +164,10 @@ const booksModel = {
   findcancelBooks: async (user_id) => {
     try {
       const [rows] = await pool.query(
-        `SELECT * FROM books WHERE user_id = ? AND status = 'canceled'`,
+        `SELECT b.*, p.name as pharmacy_name 
+         FROM books b
+         JOIN pharmacy p ON b.p_id = p.p_id
+         WHERE b.user_id = ? AND b.status = 'canceled'`,
         [user_id]
       );
       return rows;
