@@ -8,6 +8,7 @@ import {
   cancelBook,
   getcancelList,
   sendEmailController,
+  cancelBookById,
 } from "./reservation.controller.js";
 
 const router = Router();
@@ -19,5 +20,6 @@ router.post("/:user_id/books/cancel", cancelBook);
 router.get("/:user_id/books/cancel/list", getcancelList);
 router.post("/", createReservation);
 router.post("/send-email", sendEmailController);
+router.post("/cancel/:book_id", cancelBookById);
 
 export default router;

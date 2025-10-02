@@ -177,6 +177,32 @@ const booksModel = {
       return [];
     }
   },
+  postDelCancelList: async (book_id) => {
+    console.log("in model book_id", book_id);
+    try {
+      const [result] = await db.query(
+        // SQL: book_id가 일치하고 현재 status가 'canceled'인 행의 status를 'pending'으로 변경
+        `UPDATE books 
+         SET status = 'pending'
+         WHERE book_id = ? AND status = 'canceled'`,
+        [book_id]
+      );
+
+      // Return success status and affected rows info
+      return {
+        success: true,
+        affectedRows: result.affectedRows || 0,
+      };
+    } catch (error) {
+      console.error("Error in postDelCancelList (to pending):", error);
+      // Return error information instead of throwing
+      return {
+        success: false,
+        error: error.message,
+        affectedRows: 0,
+      };
+    }
+  },
 };
 
 // const sendEmail = async (user_id, p_id, date, time, memo) => {

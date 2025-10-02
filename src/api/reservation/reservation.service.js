@@ -150,6 +150,18 @@ const sendEmailService = async (
     throw error;
   }
 };
+
+const fetchDelCancelList = async (book_id) => {
+  console.log("in service book_id", book_id);
+  try {
+    const rows = await booksModel.postDelCancelList(book_id);
+    console.log("in service book_id", book_id);
+    return rows;
+  } catch (error) {
+    console.error("Error in fetchCancelBooks:", error);
+    throw error;
+  }
+};
 export {
   fetchSlotsInRange,
   fetchAvailableDates,
@@ -158,4 +170,5 @@ export {
   fetchCancelBooks,
   fetchcancelList,
   sendEmailService,
+  fetchDelCancelList,
 };

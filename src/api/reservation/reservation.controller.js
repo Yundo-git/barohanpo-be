@@ -4,6 +4,7 @@ import {
   fetchAvailableDates,
   reservationService,
   fetchCancelBooks,
+  fetchDelCancelList,
   fetchBooks,
   fetchcancelList,
   sendEmailService,
@@ -169,10 +170,31 @@ const sendEmailController = async (req, res) => {
       .json({ success: false, error: error.message || "Failed to send email" });
   }
 };
+//취소내역 삭제
+const cancelBookById = async (req, res) => {
+  const { book_id } = req.params;
+  console.log("in controller book_id", book_id);
+
+  try {
+    const data = await fetchDelCancelList(book_id);
+    res.json({
+      success: true,
+      message: "취소내역을 삭제했습니다.",
+      data,
+    });
+  } catch (error) {
+    log("Error in cancelBookById:", error);
+    res.status(200).json({
+      success: false,
+      message: error.message || "취소내역 삭제 중 오류가 발생했습니다.",
+    });
+  }
+};
 
 export {
   getSlotsByPharmacy,
   getAvailableDates,
+  cancelBookById,
   createReservation,
   getBook,
   cancelBook,
