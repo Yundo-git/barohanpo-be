@@ -22,6 +22,9 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+// 프록시 서버를 신뢰하도록 설정 (X-Forwarded-* 헤더 사용)
+app.set('trust proxy', 1);
+
 // 1) CORS 설정 (가장 상단에 위치해야 함)
 const corsOptions = {
   // 개발 환경에서는 모든 오리진 허용, 프로덕션에서는 특정 오리진만 허용
