@@ -10,12 +10,7 @@ const { pool } = db;
 import { logger } from "../../utils/logger.js";
 
 // 토큰 전용 서비스
-import {
-  issueJwtPair,
-  rotateRefresh,
-  revokeByJti,
-  revokeAllForUser,
-} from "../../services/token.service.js";
+import { issueJwtPair } from "../../services/token.service.js";
 
 // 랜덤 닉네임 유틸
 import { generateRandomNickname } from "../../utils/nicknameGenerator.js";

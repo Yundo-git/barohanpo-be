@@ -25,96 +25,50 @@ const app = express();
 // 프록시 서버를 신뢰하도록 설정 (X-Forwarded-* 헤더 사용)
 app.set('trust proxy', 1);
 
-// 1) CORS 설정 (가장 상단에 위치해야 함)
-const corsOptions = {
-  // 개발 환경에서는 모든 오리진 허용, 프로덕션에서는 특정 오리진만 허용
-  origin: (origin, callback) => {
-    // 오리진이 없는 요청 허용 (모바일 앱, curl, postman 등)
-    if (!origin) return callback(null, true);
-    
-    // 개발 환경에서는 모든 오리진을 허용하고 로깅
-    if (process.env.NODE_ENV !== 'production') {
-      // console.log(`Allowing CORS for development origin: ${origin}`);
-      return callback(null, true);
-    }
-    
-    // 프로덕션 환경에서는 특정 오리진만 허용
-    const allowedOrigins = [
-      'https://barohanpo-fe.vercel.app',
-      'https://www.barohanpo.xyz',
-      'https://barohanpo.xyz',
-      'http://localhost:3000', // 로컬 개발용
-      'http://localhost:5000',  // 로컬 API 접근용
-      'http://192.168.75.49:3000' // 로컬 API 접근용
-    ];
-     
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    
-    // 로컬호스트의 임의 포트에 대한 정규식 패턴 일치 확인
-    const localhostRegex = /^https?:\/\/localhost(:[0-9]+)?$/;
-    if (localhostRegex.test(origin)) {
-      return callback(null, true);
-    }
-    
-    console.warn(`CORS blocked request from origin: ${origin}`);
-    return callback(new Error('Not allowed by CORS'));
-  },
+// 1) CORS 설정 (개발 환경에서만 적용)
+if (process.env.NODE_ENV !== 'production') {
+  console.log('--- Development: Applying CORS Middleware ---');
   
-  // 쿠키, HTTPS 인증 헤더에 필요
-  credentials: true,
+  // 로컬 테스트를 위한 corsOptions
+  const corsOptions = {
+    origin: 'http://localhost:3000', // 로컬 프론트엔드 주소
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'X-Forwarded-For',
+      'X-Forwarded-Proto',
+      'X-Forwarded-Host',
+      'X-Forwarded-Port',
+      'X-Forwarded-Prefix',
+      'X-Real-IP',
+      'Accept',
+      'Origin',
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Credentials'
+    ],
+    exposedHeaders: [
+      'Content-Length',
+      'Content-Type',
+      'Authorization',
+      'X-Powered-By',
+      'X-Request-Id',
+      'X-Response-Time',
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Credentials'
+    ],
+    maxAge: 86400, // 24 hours
+    optionsSuccessStatus: 200
+  };
   
-  // 허용된 HTTP 메소드
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-  
-  // 허용된 요청 헤더
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-    'Accept',
-    'Accept-Encoding',
-    'Accept-Language',
-    'Cache-Control',
-    'Pragma',
-    'Connection',
-    'DNT',
-    'Origin',
-    'Referer',
-    'User-Agent',
-    'If-None-Match',
-    'If-Modified-Since',
-    'Range' // 바이트 범위 요청을 위함
-  ],
-  
-  // 노출할 헤더
-  exposedHeaders: [
-    'Content-Length',
-    'Content-Range',
-    'ETag',
-    'Last-Modified',
-    'Cache-Control',
-    'Content-Type',
-    'Content-Disposition',
-    'Authorization',
-    'X-Refresh-Token',
-    'Access-Control-Allow-Origin',
-    'Access-Control-Allow-Credentials'
-  ],
-  
-  // 프리플라이트 요청의 최대 유효 시간(초 단위)
-  maxAge: 86400, // 24 hours
-  
-  // 일부 구형 브라우저(IE11, 일부 스마트TV)는 204 상태 코드에서 문제가 발생할 수 있음
-  optionsSuccessStatus: 200
-};
-
-// 위 설정으로 CORS 미들웨어 적용
-app.use(cors(corsOptions));
-
-// 모든 라우트에 대한 프리플라이트 요청 처리
-app.options('*', cors(corsOptions));
+  // 개발 환경에서만 CORS 미들웨어 적용
+  app.use(cors(corsOptions));
+  app.options('*', cors(corsOptions));
+} else {
+  console.log('--- Production: CORS Handled by Nginx ---');
+}
 
 // 2) Swagger UI (CORS 다음에 위치)
 app.use(
