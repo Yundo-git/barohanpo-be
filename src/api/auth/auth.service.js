@@ -2,7 +2,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 import { authModel } from "./auth.Model.js";
-import UserProfilePhoto from "../profile/userProfilePhoto.model.js";
+import UserProfilePhoto from "../profile/userProfilePhoto.Model.js";
 import * as TokenService from "../../services/token.service.js";
 // DB & Logger
 import { db } from "../../config/database.js";
@@ -10,7 +10,12 @@ const { pool } = db;
 import { logger } from "../../utils/logger.js";
 
 // 토큰 전용 서비스
-import { issueJwtPair, rotateRefresh, revokeByJti, revokeAllForUser } from "../../services/token.service.js";
+import {
+  issueJwtPair,
+  rotateRefresh,
+  revokeByJti,
+  revokeAllForUser,
+} from "../../services/token.service.js";
 
 // 랜덤 닉네임 유틸
 import { generateRandomNickname } from "../../utils/nicknameGenerator.js";
@@ -20,18 +25,18 @@ import { generateRandomNickname } from "../../utils/nicknameGenerator.js";
  */
 function toPublicUser(row) {
   if (!row) return null;
-  
+
   return {
     user_id: Number(row.user_id || row.id),
     email: row.email || null,
     name: row.name || null,
     phone: row.phone || null,
     nickname: row.nickname || null,
-    role: row.role || 'user',
+    role: row.role || "user",
     profileImageUrl: row.photo_url || row.profileImageUrl || null,
     profileImageVersion: row.photo_version || row.profileImageVersion || null,
     created_at: row.created_at || new Date().toISOString(),
-    updated_at: row.updated_at || row.created_at || new Date().toISOString()
+    updated_at: row.updated_at || row.created_at || new Date().toISOString(),
   };
 }
 
@@ -165,9 +170,7 @@ async function login(email, password) {
     phone: user.phone,
   };
 
-  const { accessToken, refreshToken } = await issueJwtPair(
-    userPayload
-  );
+  const { accessToken, refreshToken } = await issueJwtPair(userPayload);
 
   logger.debug(`[${correlationId}] Login success`, {
     userId: user.user_id,

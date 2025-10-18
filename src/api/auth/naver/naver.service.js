@@ -5,7 +5,7 @@ import {
   getUserProfile,
 } from "../kakao/oauth.model.js";
 import { issueJwtPair } from "../../../services/token.service.js";
-import UserProfilePhoto from "../../profile/userProfilePhoto.model.js";
+import UserProfilePhoto from "../../profile/userProfilePhoto.Model.js";
 import { generateRandomNickname } from "../../../utils/nicknameGenerator.js";
 
 const PROVIDER = "naver";

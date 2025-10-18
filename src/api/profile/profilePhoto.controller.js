@@ -1,5 +1,5 @@
 // profilePhoto.controller.js
-import UserProfilePhoto from "./userProfilePhoto.model.js";
+import UserProfilePhoto from "./userProfilePhoto.Model.js";
 import { logger } from "../../utils/logger.js";
 
 class ProfilePhotoController {
@@ -9,21 +9,22 @@ class ProfilePhotoController {
   static async uploadProfilePhoto(req, res, next) {
     try {
       const { user_id: userId } = req.params;
-      
-      // 이 부분을 수정해야 합니다.
+
       const photoUrl = req.uploadedUrls ? req.uploadedUrls[0] : null;
-  
-      // 파일이 미들웨어에서 업로드되지 않은 경우
+
       if (!photoUrl) {
         return res.status(400).json({
           success: false,
           message: "프로필 이미지 파일이 필요합니다.",
         });
       }
-  
+
       // DB에 URL만 저장
-      const result = await UserProfilePhoto.upsertProfilePhoto(userId, photoUrl);
-  
+      const result = await UserProfilePhoto.upsertProfilePhoto(
+        userId,
+        photoUrl
+      );
+
       res.status(200).json({
         success: true,
         data: {
@@ -35,12 +36,13 @@ class ProfilePhotoController {
       logger.error("프로필 사진 업로드 중 오류:", error);
       next(error);
     }
-  }static async uploadProfilePhoto(req, res, next) {
+  }
+  static async uploadProfilePhoto(req, res, next) {
     try {
       const { user_id: userId } = req.params;
-      
+
       const photoUrl = req.uploadedUrls ? req.uploadedUrls[0] : null;
-  
+
       // 파일이 미들웨어에서 업로드되지 않은 경우
       if (!photoUrl) {
         return res.status(400).json({
@@ -48,10 +50,13 @@ class ProfilePhotoController {
           message: "프로필 이미지 파일이 필요합니다.",
         });
       }
-  
+
       // DB에 URL만 저장
-      const result = await UserProfilePhoto.upsertProfilePhoto(userId, photoUrl);
-  
+      const result = await UserProfilePhoto.upsertProfilePhoto(
+        userId,
+        photoUrl
+      );
+
       res.status(200).json({
         success: true,
         data: {
