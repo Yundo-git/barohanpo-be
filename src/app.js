@@ -74,24 +74,35 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-// CORS 헤더 중복 방지를 위해 커스텀 미들웨어 사용
+// CORS 헤더를 직접 설정하는 방식으로 변경
 app.use((req, res, next) => {
-  // 이미 CORS 헤더가 설정되어 있으면 스킵
-  if (res.headersSent || res.getHeader('Access-Control-Allow-Origin')) {
-    return next();
-  }
-  
-  // CORS 미들웨어 적용
-  cors(corsOptions)(req, res, next);
-});
+  // 요청 Origin 확인
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "https://barohanpo.xyz",
+    "https://www.barohanpo.xyz",
+    "https://barohanpo-fe.vercel.app"
+  ];
 
-// OPTIONS 요청에 대한 처리 (preflight)
-app.options('*', (req, res) => {
-  // 이미 CORS 헤더가 설정되어 있으면 스킵
-  if (!res.getHeader('Access-Control-Allow-Origin')) {
-    cors(corsOptions)(req, res, () => {});
+  // Origin이 허용 목록에 있는지 확인
+  if (origin && allowedOrigins.some(allowed => origin.startsWith(allowed.replace(/\/$/, '')))) {
+    // CORS 헤더 설정 (한 번만)
+    if (!res.getHeader('Access-Control-Allow-Origin')) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-Refresh-Token');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Type, Authorization, Set-Cookie, Content-Range, X-Total-Count');
+    }
   }
-  res.sendStatus(204); // No Content
+
+  // OPTIONS 메소드에 대한 처리 (Preflight)
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  next();
 });
 
 // 2) Swagger UI (CORS 다음에 위치)
