@@ -39,11 +39,11 @@ async function upsertOAuthLink({ userId, provider, providerUserId }) {
 async function upsertUserProfilePhoto({ userId, mimeType, buffer }) {
   // user_id UNIQUE 라고 가정 (없다면 REPLACE INTO 사용해도 됨)
   await pool.execute(
-    `INSERT INTO user_profile_photos (user_id, mime_type, photo_blob)
-     VALUES (?, ?, ?)
+    `INSERT INTO user_profile_photos (user_id, mime_type)
+     VALUES (?, ?)
      ON DUPLICATE KEY UPDATE mime_type = VALUES(mime_type),
-                             photo_blob = VALUES(photo_blob)`,
-    [userId, mimeType, buffer]
+                             `,
+    [userId, mimeType]
   );
 }
 
