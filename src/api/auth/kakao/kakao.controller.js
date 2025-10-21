@@ -114,7 +114,16 @@ async function kakaoCallback(req, res) {
 
     // 4) refresh 토큰은 HttpOnly 쿠키로 (access 토큰은 쿠키 금지)
     setRefreshCookie(res, result.refreshToken);
-    console.log("Set refresh cookie. Path should be /api");
+    console.log("4. Refresh cookie set successfully via setRefreshCookie.");
+
+    // ⭐️ 추가된 로그: 응답 헤더에 Set-Cookie가 추가되었는지 확인
+    const setCookieHeader = res.getHeader('Set-Cookie');
+    console.log(`5. Check res header before redirect: Set-Cookie is ${setCookieHeader ? 'PRESENT' : 'MISSING'}`);
+    if (setCookieHeader) {
+        // 배열일 경우도 있으므로 join 처리
+        console.log('   - Set-Cookie value(s):', Array.isArray(setCookieHeader) ? setCookieHeader.join(' | ') : setCookieHeader);
+    }
+    // ⭐️ 추가된 로그 끝
 
     // 5) 프론트로 리다이렉트 (state로 받은 next 경로가 있으면 거기로)
     const rawState =
@@ -122,10 +131,7 @@ async function kakaoCallback(req, res) {
     const next = safeNext(decodeURIComponent(rawState)); // 오픈리다이렉트 방지
     // 프론트에서 로그인 직후 me/refresh 호출로 상태 동기화하게 함
 
-    console.log("카카오 콜백 최종 응답:", {
-      user: result.user,
-      accessToken: result.accessToken,
-    });
+    console.log("6. Kakao callback final response redirect to:", `${FRONTEND_BASE_URL}${next}?login=success`);
     return res.redirect(`${FRONTEND_BASE_URL}${next}?login=success`);
   } catch (error) {
     const detail =
