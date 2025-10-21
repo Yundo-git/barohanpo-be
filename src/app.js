@@ -31,11 +31,25 @@ if (process.env.NODE_ENV !== "production") {
 
   // 로컬 테스트를 위한 corsOptions
   const corsOptions = {
-    origin: [
-      "http://localhost:3000",
-      "https://barohanpo.xyz",
-      "https://barohanpo-fe.vercel.app",
-    ], // 로컬 프론트엔드 주소
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        "http://localhost:3000",
+        "https://barohanpo.xyz",
+        "https://barohanpo-fe.vercel.app",
+      ];
+
+      // 개발 환경에서는 모든 출처 허용 (필요시)
+      if (process.env.NODE_ENV === "development" || !origin) {
+        return callback(null, true);
+      }
+
+      // 프로덕션에서는 허용된 도메인만
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
@@ -50,8 +64,6 @@ if (process.env.NODE_ENV !== "production") {
       "X-Real-IP",
       "Accept",
       "Origin",
-      "Access-Control-Allow-Origin",
-      "Access-Control-Allow-Credentials",
     ],
     exposedHeaders: [
       "set-cookie",
@@ -61,13 +73,11 @@ if (process.env.NODE_ENV !== "production") {
       "X-Powered-By",
       "X-Request-Id",
       "X-Response-Time",
-      "Access-Control-Allow-Origin",
-      "Access-Control-Allow-Credentials",
     ],
     maxAge: 86400, // 24 hours
     optionsSuccessStatus: 200,
+    preflightContinue: false,
   };
-
   // 개발 환경에서만 CORS 미들웨어 적용
   app.use(cors(corsOptions));
   app.options("*", cors(corsOptions));

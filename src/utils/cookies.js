@@ -8,7 +8,7 @@ export function setRefreshCookie(res, token) {
   const isProduction = process.env.NODE_ENV === "production";
   const domain = isProduction ? ".barohanpo.xyz" : undefined;
 
-  res.cookie("refreshToken", token, {
+  res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
