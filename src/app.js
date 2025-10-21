@@ -25,21 +25,20 @@ const app = express();
 // 프록시 서버를 신뢰하도록 설정 (X-Forwarded-* 헤더 사용)
 app.set("trust proxy", 1);
 
-// 1) CORS 설정 (개발 환경에서만 적용)
-if (process.env.NODE_ENV !== "production") {
-  console.log("--- Development: Applying CORS Middleware ---");
+// 1) CORS 설정 (모든 환경에서 적용)
+console.log(`--- Applying CORS Middleware in ${process.env.NODE_ENV || 'development'} mode ---`);
 
-  // 로컬 테스트를 위한 corsOptions
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://barohanpo.xyz",
+  "https://www.barohanpo.xyz",
+  "https://barohanpo-fe.vercel.app"
+];
+
 const corsOptions = {
   origin: function (origin, callback) {
-    const allowedOrigins = [
-      "http://localhost:3000",
-      "https://barohanpo.xyz",
-      "https://barohanpo-fe.vercel.app", // 프론트엔드 Vercel 도메인
-    ];
-
     // origin이 없는 경우(같은 도메인) 또는 허용된 도메인인 경우
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.some(allowed => origin.startsWith(allowed.replace(/\/$/, '')))) {
       console.log("✅ CORS allowed for origin:", origin || "same-origin");
       return callback(null, true);
     }
@@ -47,12 +46,12 @@ const corsOptions = {
     console.log("❌ CORS blocked origin:", origin);
     return callback(new Error("Not allowed by CORS"));
   },
-  credentials: true, // 🔥 중요: 쿠키 전송 허용
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  credentials: true, // 쿠키 전송 허용
   allowedHeaders: [
     "Content-Type",
     "Authorization",
     "X-Requested-With",
+    "X-Refresh-Token",
     "X-Forwarded-For",
     "X-Forwarded-Proto",
     "X-Forwarded-Host",
@@ -60,24 +59,24 @@ const corsOptions = {
     "X-Forwarded-Prefix",
     "X-Real-IP",
     "Accept",
-    "Origin",
+    "Origin"
   ],
   exposedHeaders: [
-    "Set-Cookie", // 🔥 중요: Set-Cookie 헤더 노출
+    "Set-Cookie",
     "Content-Length",
     "Content-Type",
     "Authorization",
+    "Content-Range",
+    "X-Total-Count"
   ],
-  maxAge: 86400,
-  optionsSuccessStatus: 200,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  maxAge: 600, // preflight 결과를 캐시하는 시간(초)
+  optionsSuccessStatus: 200
 };
 
-  // 개발 환경에서만 CORS 미들웨어 적용
-  app.use(cors(corsOptions));
-  app.options("*", cors(corsOptions));
-} else {
-  console.log("--- Production: CORS Handled by Nginx ---");
-}
+// CORS 미들웨어 적용
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // preflight 요청 처리
 
 // 2) Swagger UI (CORS 다음에 위치)
 app.use(
