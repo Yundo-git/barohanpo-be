@@ -25,17 +25,19 @@ const app = express();
 // 프록시 서버를 신뢰하도록 설정 (X-Forwarded-* 헤더 사용)
 app.set("trust proxy", 1);
 
-// 1) CORS 설정 (개발 환경에서만 적용)
-if (process.env.NODE_ENV !== "production") {
-  console.log("--- Development: Applying CORS Middleware ---");
+// ==========================================================
+// 1) CORS 설정 (모든 환경에서 적용되도록 조건문 제거)
+// Nginx가 헤더 전달에 실패해도 Express가 직접 CORS 헤더를 보장합니다.
+// ==========================================================
+console.log("--- Applying CORS Middleware for all environments ---");
 
-  // 로컬 테스트를 위한 corsOptions
+// 로컬 테스트 및 프로덕션을 위한 corsOptions
 const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
       "http://localhost:3000",
       "https://barohanpo.xyz",
-      "https://barohanpo-fe.vercel.app", // 프론트엔드 Vercel 도메인
+      "https://barohanpo-fe.vercel.app", // 프론트엔드 Vercel 도메인 (필수)
     ];
 
     // origin이 없는 경우(같은 도메인) 또는 허용된 도메인인 경우
@@ -61,9 +63,10 @@ const corsOptions = {
     "X-Real-IP",
     "Accept",
     "Origin",
+    "x-refresh-token", // 커스텀 헤더를 명시적으로 허용
   ],
   exposedHeaders: [
-    "Set-Cookie", // 🔥 중요: Set-Cookie 헤더 노출
+    "Set-Cookie", // Set-Cookie 헤더 노출
     "Content-Length",
     "Content-Type",
     "Authorization",
@@ -72,12 +75,9 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-  // 개발 환경에서만 CORS 미들웨어 적용
-  app.use(cors(corsOptions));
-  app.options("*", cors(corsOptions));
-} else {
-  console.log("--- Production: CORS Handled by Nginx ---");
-}
+// 조건문 없이 바로 적용
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // Preflight 요청 처리
 
 // 2) Swagger UI (CORS 다음에 위치)
 app.use(
@@ -127,8 +127,8 @@ app.use(compression());
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15분
   max: 100, // 각 IP당 15분당 100회 요청 제한
-  standardHeaders: true, // `RateLimit-*` 헤더에 요청 제한 정보 반환
-  legacyHeaders: false, // `X-RateLimit-*` 헤더 비활성화
+  standardHeaders: true,
+  legacyHeaders: false,
   // 요청 제한에 대한 응답 메시지
   message: JSON.stringify({
     success: false,
@@ -187,8 +187,5 @@ app.all("*", notFoundHandler);
 
 // 전역 에러 핸들러
 app.use(errorHandler);
-
-//스웨거 라우터 추가
-// app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 export default app;
