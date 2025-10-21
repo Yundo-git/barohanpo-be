@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import compression from "compression";
 import helmet from "helmet";
@@ -23,51 +23,51 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // 프록시 서버를 신뢰하도록 설정 (X-Forwarded-* 헤더 사용)
-app.set('trust proxy', 1);
+app.set("trust proxy", 1);
 
 // 1) CORS 설정 (개발 환경에서만 적용)
-if (process.env.NODE_ENV !== 'production') {
-  console.log('--- Development: Applying CORS Middleware ---');
-  
+if (process.env.NODE_ENV !== "production") {
+  console.log("--- Development: Applying CORS Middleware ---");
+
   // 로컬 테스트를 위한 corsOptions
   const corsOptions = {
-    origin: 'http://localhost:3000', // 로컬 프론트엔드 주소
+    origin: "http://localhost:3000", // 로컬 프론트엔드 주소
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Requested-With',
-      'X-Forwarded-For',
-      'X-Forwarded-Proto',
-      'X-Forwarded-Host',
-      'X-Forwarded-Port',
-      'X-Forwarded-Prefix',
-      'X-Real-IP',
-      'Accept',
-      'Origin',
-      'Access-Control-Allow-Origin',
-      'Access-Control-Allow-Credentials'
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "X-Forwarded-For",
+      "X-Forwarded-Proto",
+      "X-Forwarded-Host",
+      "X-Forwarded-Port",
+      "X-Forwarded-Prefix",
+      "X-Real-IP",
+      "Accept",
+      "Origin",
+      "Access-Control-Allow-Origin",
+      "Access-Control-Allow-Credentials",
     ],
     exposedHeaders: [
-      'Content-Length',
-      'Content-Type',
-      'Authorization',
-      'X-Powered-By',
-      'X-Request-Id',
-      'X-Response-Time',
-      'Access-Control-Allow-Origin',
-      'Access-Control-Allow-Credentials'
+      "Content-Length",
+      "Content-Type",
+      "Authorization",
+      "X-Powered-By",
+      "X-Request-Id",
+      "X-Response-Time",
+      "Access-Control-Allow-Origin",
+      "Access-Control-Allow-Credentials",
     ],
     maxAge: 86400, // 24 hours
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
   };
-  
+
   // 개발 환경에서만 CORS 미들웨어 적용
   app.use(cors(corsOptions));
-  app.options('*', cors(corsOptions));
+  app.options("*", cors(corsOptions));
 } else {
-  console.log('--- Production: CORS Handled by Nginx ---');
+  console.log("--- Production: CORS Handled by Nginx ---");
 }
 
 // 2) Swagger UI (CORS 다음에 위치)
@@ -123,39 +123,39 @@ const apiLimiter = rateLimit({
   // 요청 제한에 대한 응답 메시지
   message: JSON.stringify({
     success: false,
-    error: '요청 제한 초과, 나중에 다시 시도하세요.'
+    error: "요청 제한 초과, 나중에 다시 시도하세요.",
   }),
   // 성공한 요청(상태 코드 < 400)은 요청 제한에서 제외
   skipSuccessfulRequests: true,
   // 관리자 권한이 있는 인증된 사용자는 요청 제한에서 제외
-  skip: (req) => req.user && req.user.role === 'admin',
+  skip: (req) => req.user && req.user.role === "admin",
 });
 
 // 2) 인증 엔드포인트에 대한 더 엄격한 요청 제한
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15분
-  max: 10, // 인증 엔드포인트에 대해 IP당 15분당 10회 요청 제한
+  max: 20, // 인증 엔드포인트에 대해 IP당 15분당 10회 요청 제한
   standardHeaders: true,
   legacyHeaders: false,
   // 요청 제한에 대한 응답 메시지
   message: JSON.stringify({
     success: false,
-    error: 'Too many login attempts, please try again later.'
+    error: "Too many login attempts, please try again later.",
   }),
   // 성공한 요청을 포함한 모든 요청에 요청 제한 적용
   skipSuccessfulRequests: false,
   // 화이트리스트에 있는 IP는 요청 제한에서 제외 (예: 사무실 IP)
   skip: (req) => {
-    const whitelist = ['127.0.0.1', '::1'];
+    const whitelist = ["127.0.0.1", "::1"];
     return whitelist.includes(req.ip);
   },
 });
 
 // 3) 특정 라우트에 요청 제한 적용
-app.use('/api', apiLimiter); // 모든 API 라우트에 일반 요청 제한 적용
-app.use('/api/auth/login', authLimiter); // 로그인에 더 엄격한 요청 제한
-app.use('/api/auth/signup', authLimiter); // 회원가입에 더 엄격한 요청 제한
-app.use('/api/auth/refresh-token', authLimiter); // 토큰 갱신에 더 엄격한 요청 제한
+app.use("/api", apiLimiter); // 모든 API 라우트에 일반 요청 제한 적용
+app.use("/api/auth/login", authLimiter); // 로그인에 더 엄격한 요청 제한
+app.use("/api/auth/signup", authLimiter); // 회원가입에 더 엄격한 요청 제한
+app.use("/api/auth/refresh-token", authLimiter); // 토큰 갱신에 더 엄격한 요청 제한
 
 // 2) ROUTES
 // 상태 확인 엔드포인트
