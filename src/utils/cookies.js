@@ -8,13 +8,13 @@ export function setRefreshCookie(res, token) {
   const isProduction = process.env.NODE_ENV === "production";
   const domain = isProduction ? ".barohanpo.xyz" : undefined;
 
-  res.cookie(COOKIE_NAME, token, {
+  res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    domain,
+    secure: true,
+    sameSite: "none",
+    domain: ".barohanpo.xyz",
     path: "/",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 }
 
