@@ -36,16 +36,13 @@ const corsOptions = {
     }
     
     // 프로덕션 환경에서는 특정 오리진만 허용
-    const allowedOrigins = [
-      'https://barohanpo-fe.vercel.app',
-      'https://www.barohanpo.xyz',
-      'https://barohanpo.xyz',
-      'http://localhost:3000', // 로컬 개발용
-      'http://localhost:5000',  // 로컬 API 접근용
-      'http://192.168.75.49:3000' // 로컬 API 접근용
+   const allowedOrigins = [
+      "http://localhost:3000",
+      "https://barohanpo.xyz",
+      "https://barohanpo-fe.vercel.app", // 프론트엔드 Vercel 도메인
     ];
-     
-    if (allowedOrigins.includes(origin)) {
+   // origin이 없는 경우(같은 도메인) 또는 허용된 도메인인 경우
+    if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     
@@ -55,8 +52,8 @@ const corsOptions = {
       return callback(null, true);
     }
     
-    console.warn(`CORS blocked request from origin: ${origin}`);
-    return callback(new Error('Not allowed by CORS'));
+    console.log("❌ CORS blocked origin:", origin);
+    return callback(new Error("Not allowed by CORS"));
   },
   
   // 쿠키, HTTPS 인증 헤더에 필요
@@ -67,37 +64,27 @@ const corsOptions = {
   
   // 허용된 요청 헤더
   allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-    'Accept',
-    'Accept-Encoding',
-    'Accept-Language',
-    'Cache-Control',
-    'Pragma',
-    'Connection',
-    'DNT',
-    'Origin',
-    'Referer',
-    'User-Agent',
-    'If-None-Match',
-    'If-Modified-Since',
-    'Range' // 바이트 범위 요청을 위함
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
   ],
   
   // 노출할 헤더
   exposedHeaders: [
-    'Content-Length',
-    'Content-Range',
-    'ETag',
-    'Last-Modified',
-    'Cache-Control',
-    'Content-Type',
-    'Content-Disposition',
-    'Authorization',
-    'X-Refresh-Token',
-    'Access-Control-Allow-Origin',
-    'Access-Control-Allow-Credentials'
+    "Content-Length",
+    "Content-Range",
+    "ETag",
+    "Last-Modified",
+    "Cache-Control",
+    "Content-Type",
+    "Content-Disposition",
+    "Authorization",
+    "X-Refresh-Token",
+    "Access-Control-Allow-Origin",
+    "Access-Control-Allow-Credentials",
+    "set-cookie"
   ],
   
   // 프리플라이트 요청의 최대 유효 시간(초 단위)
