@@ -19,15 +19,17 @@ export function setRefreshCookie(res, token) {
     cookieOptions.domain = ".barohanpo.xyz";
   }
 
+  console.log("=== [setRefreshCookie] ===");
+  console.log("Environment:", process.env.NODE_ENV);
+  console.log("Cookie Name:", COOKIE_NAME);
+  console.log("Cookie Options:", JSON.stringify(cookieOptions, null, 2));
+  console.log("Token length:", token?.length);
+  console.log("Token preview:", token?.substring(0, 30) + "...");
+
   res.cookie(COOKIE_NAME, token, cookieOptions);
   
-  console.log(`[Cookie Set] ${COOKIE_NAME} with options:`, {
-    domain: cookieOptions.domain || 'localhost',
-    path: cookieOptions.path,
-    sameSite: cookieOptions.sameSite,
-    secure: cookieOptions.secure,
-    tokenLength: token?.length,
-  });
+  console.log("✅ Cookie set successfully");
+  console.log("=======================");
 }
 
 export function clearRefreshCookie(res) {
@@ -35,8 +37,8 @@ export function clearRefreshCookie(res) {
   
   const clearOptions = {
     httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
+    secure: true,
+    sameSite: "none",
     path: COOKIE_PATH,
   };
 
