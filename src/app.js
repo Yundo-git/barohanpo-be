@@ -30,54 +30,48 @@ if (process.env.NODE_ENV !== "production") {
   console.log("--- Development: Applying CORS Middleware ---");
 
   // 로컬 테스트를 위한 corsOptions
-  const corsOptions = {
-    origin: function (origin, callback) {
+const corsOptions = {
+  origin: function (origin, callback) {
     const allowedOrigins = [
       "http://localhost:3000",
       "https://barohanpo.xyz",
       "https://barohanpo-fe.vercel.app", // 프론트엔드 Vercel 도메인
     ];
 
-      // 개발 환경에서는 모든 출처 허용 (필요시)
-      if (process.env.NODE_ENV === "development" || !origin) {
-        return callback(null, true);
-      }
+    // origin이 없는 경우(같은 도메인) 또는 허용된 도메인인 경우
+    if (!origin || allowedOrigins.includes(origin)) {
+      console.log("✅ CORS allowed for origin:", origin || "same-origin");
+      return callback(null, true);
+    }
 
-      // 프로덕션에서는 허용된 도메인만
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+    console.log("❌ CORS blocked origin:", origin);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true, // 🔥 중요: 쿠키 전송 허용
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "X-Forwarded-For",
+    "X-Forwarded-Proto",
+    "X-Forwarded-Host",
+    "X-Forwarded-Port",
+    "X-Forwarded-Prefix",
+    "X-Real-IP",
+    "Accept",
+    "Origin",
+  ],
+  exposedHeaders: [
+    "Set-Cookie", // 🔥 중요: Set-Cookie 헤더 노출
+    "Content-Length",
+    "Content-Type",
+    "Authorization",
+  ],
+  maxAge: 86400,
+  optionsSuccessStatus: 200,
+};
 
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "X-Requested-With",
-      "X-Forwarded-For",
-      "X-Forwarded-Proto",
-      "X-Forwarded-Host",
-      "X-Forwarded-Port",
-      "X-Forwarded-Prefix",
-      "X-Real-IP",
-      "Accept",
-      "Origin",
-    ],
-    exposedHeaders: [
-      "set-cookie",
-      "Content-Length",
-      "Content-Type",
-      "Authorization",
-      "X-Powered-By",
-      "X-Request-Id",
-      "X-Response-Time",
-    ],
-    maxAge: 86400, // 24 hours
-    optionsSuccessStatus: 200,
-    preflightContinue: false,
-  };
   // 개발 환경에서만 CORS 미들웨어 적용
   app.use(cors(corsOptions));
   app.options("*", cors(corsOptions));
