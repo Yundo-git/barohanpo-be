@@ -116,8 +116,13 @@ const login = async (req, res) => {
  */
 const refreshToken = async (req, res) => {
   try {
+
+        console.log("리프레시 토큰 요청 도착");
+    console.log("쿠키:", req.cookies);  // Check if cookies are present
+    console.log("헤더:", req.headers);
     const refreshTokenFromReq =
       req.cookies?.refresh_token || req.headers["x-refresh-token"];
+    console.log("추출된 리프레시 토큰:", refreshTokenFromReq ? "있음" : "없음");
 
     if (!refreshTokenFromReq) {
       return res.status(401).json({
