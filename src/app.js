@@ -32,11 +32,11 @@ if (process.env.NODE_ENV !== "production") {
   // 로컬 테스트를 위한 corsOptions
   const corsOptions = {
     origin: function (origin, callback) {
-      const allowedOrigins = [
-        "http://localhost:3000",
-        "https://barohanpo.xyz",
-        "https://barohanpo-fe.vercel.app",
-      ];
+    const allowedOrigins = [
+      "http://localhost:3000",
+      "https://barohanpo.xyz",
+      "https://barohanpo-fe.vercel.app", // 프론트엔드 Vercel 도메인
+    ];
 
       // 개발 환경에서는 모든 출처 허용 (필요시)
       if (process.env.NODE_ENV === "development" || !origin) {
