@@ -74,9 +74,25 @@ const corsOptions = {
   optionsSuccessStatus: 200
 };
 
-// CORS 미들웨어 적용
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // preflight 요청 처리
+// CORS 헤더 중복 방지를 위해 커스텀 미들웨어 사용
+app.use((req, res, next) => {
+  // 이미 CORS 헤더가 설정되어 있으면 스킵
+  if (res.headersSent || res.getHeader('Access-Control-Allow-Origin')) {
+    return next();
+  }
+  
+  // CORS 미들웨어 적용
+  cors(corsOptions)(req, res, next);
+});
+
+// OPTIONS 요청에 대한 처리 (preflight)
+app.options('*', (req, res) => {
+  // 이미 CORS 헤더가 설정되어 있으면 스킵
+  if (!res.getHeader('Access-Control-Allow-Origin')) {
+    cors(corsOptions)(req, res, () => {});
+  }
+  res.sendStatus(204); // No Content
+});
 
 // 2) Swagger UI (CORS 다음에 위치)
 app.use(
