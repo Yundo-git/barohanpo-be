@@ -54,6 +54,7 @@ if (process.env.NODE_ENV !== "production") {
       "Access-Control-Allow-Credentials",
     ],
     exposedHeaders: [
+      "set-cookie",
       "Content-Length",
       "Content-Type",
       "Authorization",
