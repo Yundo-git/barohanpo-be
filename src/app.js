@@ -31,7 +31,11 @@ if (process.env.NODE_ENV !== "production") {
 
   // 로컬 테스트를 위한 corsOptions
   const corsOptions = {
-    origin: "http://localhost:3000", // 로컬 프론트엔드 주소
+    origin: [
+      "http://localhost:3000",
+      "https://barohanpo.xyz",
+      "https://barohanpo-fe.vercel.app",
+    ], // 로컬 프론트엔드 주소
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
