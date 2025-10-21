@@ -55,19 +55,54 @@ async function kakaoCallback(req, res) {
     const redirectUri = process.env.KAKAO_REDIRECT_URI;
     const clientId = process.env.KAKAO_REST_API_KEY;
 
+    console.log('1. Starting Kakao token exchange...');
+    console.log('   - Code:', code ? 'Received' : 'Missing');
+    console.log('   - Redirect URI:', redirectUri);
+    console.log('   - Client ID:', clientId ? 'Set' : 'Missing');
+
     // 1) 카카오 토큰 교환
-    const tokenRes = await axios.post(
-      KAKAO_TOKEN_URL,
-      new URLSearchParams({
-        grant_type: "authorization_code",
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        code,
-      }),
-      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-    );
+    let tokenRes;
+    try {
+      tokenRes = await axios.post(
+        KAKAO_TOKEN_URL,
+        new URLSearchParams({
+          grant_type: "authorization_code",
+          client_id: clientId,
+          redirect_uri: redirectUri,
+          code,
+        }),
+        { 
+          headers: { 
+            "Content-Type": "application/x-www-form-urlencoded",
+            'Accept': 'application/json'
+          } 
+        }
+      );
+      
+      console.log('2. Kakao token exchange successful');
+      console.log('   - Response status:', tokenRes.status);
+      console.log('   - Response data keys:', Object.keys(tokenRes.data));
+      
+      if (!tokenRes.data.access_token) {
+        console.error('   - No access_token in response:', tokenRes.data);
+        throw new Error('No access_token in Kakao response');
+      }
+    } catch (error) {
+      console.error('Kakao token exchange failed:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers
+      });
+      throw error;
+    }
 
     const kakaoAccessToken = tokenRes.data.access_token;
+    console.log('3. Kakao access token received:', {
+      token: kakaoAccessToken ? '***' + kakaoAccessToken.slice(-8) : 'None',
+      expires_in: tokenRes.data.expires_in,
+      refresh_token: tokenRes.data.refresh_token ? '***' + String(tokenRes.data.refresh_token).slice(-8) : 'None'
+    });
 
     // 2) 카카오 사용자 정보
     const meRes = await axios.get("https://kapi.kakao.com/v2/user/me", {

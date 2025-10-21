@@ -81,15 +81,58 @@ async function issueJwtPair(userPayload) {
  * @param {string} refreshJwt
  */
 async function isRefreshValid(jti, refreshJwt) {
-  const [rows] = await db.execute(
-    `SELECT token_hash, revoked, expires_at FROM refresh_tokens WHERE jti = ? LIMIT 1`,
-    [jti]
-  );
-  if (!rows || !rows[0]) return false;
-  const { token_hash, revoked, expires_at } = rows[0];
-  if (revoked) return false;
-  if (new Date(expires_at) < new Date()) return false;
-  return token_hash === sha256(refreshJwt);
+  const logId = `[${Math.random().toString(36).slice(2, 8)}]`;
+  logger.debug(`${logId} [isRefreshValid] Validating refresh token`, { jti });
+  
+  try {
+    const [rows] = await db.execute(
+      `SELECT token_hash, revoked, expires_at FROM refresh_tokens WHERE jti = ? LIMIT 1`,
+      [jti]
+    );
+
+    if (!rows || !rows[0]) {
+      logger.warn(`${logId} [isRefreshValid] Token not found in database`, { jti });
+      return false;
+    }
+
+    const { token_hash, revoked, expires_at } = rows[0];
+    const now = new Date();
+    const expiryDate = new Date(expires_at);
+    
+    if (revoked) {
+      logger.warn(`${logId} [isRefreshValid] Token has been revoked`, { jti });
+      return false;
+    }
+    
+    if (expiryDate < now) {
+      logger.warn(`${logId} [isRefreshValid] Token has expired`, { 
+        jti, 
+        expiredAt: expiryDate.toISOString(),
+        currentTime: now.toISOString()
+      });
+      return false;
+    }
+
+    const isValid = token_hash === sha256(refreshJwt);
+    if (!isValid) {
+      logger.warn(`${logId} [isRefreshValid] Token hash mismatch`, { 
+        jti,
+        expectedHash: token_hash,
+        actualHash: sha256(refreshJwt).slice(0, 10) + '...'
+      });
+    } else {
+      logger.debug(`${logId} [isRefreshValid] Token is valid`, { jti });
+    }
+    
+    return isValid;
+  } catch (error) {
+    logger.error(`${logId} [isRefreshValid] Error validating token`, { 
+      jti, 
+      error: error.message,
+      stack: error.stack
+    });
+    return false;
+  }
 }
 
 /** 특정 jti 무효화 */
@@ -114,20 +157,49 @@ async function revokeAllForUser(userId) {
  * @returns {{ accessToken:string, refreshToken:string, userPayload:object, newJti:string, expiresAt:Date }}
  */
 async function rotateRefresh(oldRefresh) {
+  const logId = `[${Math.random().toString(36).slice(2, 8)}]`;
+  logger.info(`${logId} [rotateRefresh] Starting token refresh process`);
+  
   let payload;
   try {
+    logger.debug(`${logId} [rotateRefresh] Verifying refresh token`);
     payload = jwt.verify(oldRefresh, JWT_REFRESH_SECRET, {
       issuer: "barohanpo",
       subject: "refresh",
     });
+    logger.debug(`${logId} [rotateRefresh] Token verified successfully`, { 
+      userId: payload.user_id, 
+      jti: payload.jti,
+      type: payload.type,
+      exp: payload.exp ? new Date(payload.exp * 1000).toISOString() : null
+    });
   } catch (e) {
+    logger.error(`${logId} [rotateRefresh] Token verification failed`, { 
+      error: e.message,
+      name: e.name,
+      expiredAt: e.expiredAt,
+      tokenLength: oldRefresh?.length || 0
+    });
     throw new Error("Invalid or expired refresh token");
   }
 
-  if (payload.type !== "refresh") throw new Error("Invalid token type");
+  if (payload.type !== "refresh") {
+    logger.error(`${logId} [rotateRefresh] Invalid token type`, { 
+      expectedType: 'refresh', 
+      actualType: payload.type 
+    });
+    throw new Error("Invalid token type");
+  }
 
+  logger.debug(`${logId} [rotateRefresh] Checking refresh token validity in DB`);
   const valid = await isRefreshValid(payload.jti, oldRefresh);
-  if (!valid) throw new Error("Invalid or expired refresh token");
+  if (!valid) {
+    logger.error(`${logId} [rotateRefresh] Refresh token is invalid or expired in DB`, { 
+      jti: payload.jti,
+      userId: payload.user_id
+    });
+    throw new Error("Invalid or expired refresh token");
+  }
 
   const userPayload = {
     // 통일: 우리 프로젝트는 user_id 사용
@@ -147,7 +219,14 @@ async function rotateRefresh(oldRefresh) {
   } = await issueJwtPair(userPayload);
 
   // 예전 토큰 revoke
+  logger.debug(`${logId} [rotateRefresh] Revoking old token`, { oldJti: payload.jti });
   await revokeByJti(payload.jti);
+
+  logger.info(`${logId} [rotateRefresh] Successfully issued new tokens`, {
+    userId: userPayload.user_id,
+    newJti,
+    expiresAt: expiresAt.toISOString()
+  });
 
   return { accessToken, refreshToken, userPayload, newJti, expiresAt };
 }
