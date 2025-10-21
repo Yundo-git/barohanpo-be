@@ -5,13 +5,16 @@ export const COOKIE_NAME = "refresh_token";
 export const COOKIE_PATH = "/api";
 
 export function setRefreshCookie(res, token) {
+  const isProduction = process.env.NODE_ENV === "production";
+  const domain = isProduction ? ".barohanpo.xyz" : undefined;
+
   res.cookie("refreshToken", token, {
     httpOnly: true,
-    secure: true, // HTTPS 필수
-    sameSite: "none", // 크로스 도메인 허용
-    domain: ".barohanpo.xyz", // 모든 서브도메인에서 접근 가능
-    path: "/", // 모든 경로에서 접근 가능
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    domain,
+    path: "/",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 }
 
