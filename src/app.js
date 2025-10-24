@@ -37,7 +37,7 @@ const corsOptions = {
     const allowedOrigins = [
       "http://localhost:3000",
       "https://barohanpo.xyz",
-      "https://barohanpo-fe.vercel.app", // 프론트엔드 Vercel 도메인 (필수)
+      "https://app.barohanpo.xyz", // 프론트엔드 Vercel 도메인 (필수)
     ];
 
     // origin이 없는 경우(같은 도메인) 또는 허용된 도메인인 경우
