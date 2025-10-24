@@ -22,7 +22,7 @@ const pharmacyModel = {
     try {
       // Haversine formula in MySQL to calculate distance (km)
       const query = `
-        SELECT p_id, name, address,latitude, longitude,
+        SELECT p_id, name, address, etc, business_hours_json,latitude, longitude,
           (6371 * acos(
             cos(radians(?)) * cos(radians(latitude)) *
             cos(radians(longitude) - radians(?)) +
@@ -48,6 +48,7 @@ const pharmacyModel = {
       const [rows] = await pool.query("SELECT * FROM pharmacy WHERE p_id = ?", [
         p_id,
       ]);
+      console.log("data >> find by id", rows);
       return rows[0];
     } catch (error) {
       console.error("Error in pharmacyModel.findById:", error);
