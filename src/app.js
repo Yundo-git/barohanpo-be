@@ -143,7 +143,7 @@ const apiLimiter = rateLimit({
 // 2) 인증 엔드포인트에 대한 더 엄격한 요청 제한
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15분
-  max: 20, // 인증 엔드포인트에 대해 IP당 15분당 10회 요청 제한
+  max: 1000, // 인증 엔드포인트에 대해 IP당 15분당 10회 요청 제한
   standardHeaders: true,
   legacyHeaders: false,
   // 요청 제한에 대한 응답 메시지
