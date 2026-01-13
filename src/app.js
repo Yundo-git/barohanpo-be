@@ -36,20 +36,20 @@ const corsOptions = {
   origin: function (origin, callback) {
     const allowedOrigins = [
       "http://localhost:3000",
-      "https://barohanpo.xyz",
-      "https://app.barohanpo.xyz", // 프론트엔드 Vercel 도메인 (필수)
+      "https://barohanpo.xyz", // 백엔드 url
+      "https://app.barohanpo.xyz", // 프론트엔드(필수)
     ];
 
     // origin이 없는 경우(같은 도메인) 또는 허용된 도메인인 경우
     if (!origin || allowedOrigins.includes(origin)) {
-      console.log("✅ CORS allowed for origin:", origin || "same-origin");
+      console.log("CORS allowed for origin:", origin || "same-origin");
       return callback(null, true);
     }
 
-    console.log("❌ CORS blocked origin:", origin);
+    console.log(" CORS blocked origin:", origin);
     return callback(new Error("Not allowed by CORS"));
   },
-  credentials: true, // 🔥 중요: 쿠키 전송 허용
+  credentials: true, //  중요: 쿠키 전송 허용
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
