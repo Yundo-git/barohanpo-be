@@ -1,4 +1,3 @@
-
 export const COOKIE_NAME = "refresh_token";
 // 쿠키 경로를 루트로 설정 (모든 경로에서 접근 가능)
 export const COOKIE_PATH = "/";
@@ -24,7 +23,7 @@ export function setRefreshCookie(res, token) {
   // 🛑 Nginx 또는 크로스 도메인 환경에서 문제를 일으킬 가능성이 높으므로 domain 옵션을 제거합니다.
   // Express는 유효하지 않은 domain 옵션 시 쿠키 설정을 무시할 수 있습니다.
   // if (isProduction) {
-  //   cookieOptions.domain = ".barohanpo.xyz"; 
+  //   cookieOptions.domain = ".barohanpo.xyz";
   // }
 
   console.log("=== [setRefreshCookie] ===");
@@ -35,7 +34,7 @@ export function setRefreshCookie(res, token) {
   console.log("Token preview:", token?.substring(0, 30) + "...");
 
   res.cookie(COOKIE_NAME, token, cookieOptions);
-  
+
   console.log("✅ Cookie set successfully");
   console.log("=======================");
 }
@@ -45,12 +44,12 @@ export function setRefreshCookie(res, token) {
  * @param {object} res Express 응답 객체
  */
 export function clearRefreshCookie(res) {
-  const isProduction = process.env.NODE_ENV === "production";
-  
+  // const isProduction = process.env.NODE_ENV === "production";
+
   const clearOptions = {
     httpOnly: true,
-    secure: isProduction || true,
-    sameSite: isProduction ? "none" : "lax",
+    secure: true,
+    sameSite: "lax",
     path: COOKIE_PATH,
     // clearCookie는 maxAge 대신 만료일을 과거로 설정합니다.
   };
@@ -65,12 +64,12 @@ export function clearRefreshCookie(res) {
 
   // 혹시 모를 이전 경로들을 삭제 시도 (이전 경로로 쿠키가 설정되어 있을 경우를 대비)
   const oldPaths = ["/api", "/api/auth/refresh-token"];
-  oldPaths.forEach(oldPath => {
+  oldPaths.forEach((oldPath) => {
     res.clearCookie(COOKIE_NAME, {
       ...clearOptions,
       path: oldPath,
     });
   });
-  
+
   console.log(`[Cookie Clear] ${COOKIE_NAME}`);
 }
