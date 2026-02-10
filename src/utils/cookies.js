@@ -49,9 +49,8 @@ export function clearRefreshCookie(res) {
   const clearOptions = {
     httpOnly: true,
     secure: true,
-    sameSite: "lax",
+    sameSite: "none",
     path: COOKIE_PATH,
-    // clearCookie는 maxAge 대신 만료일을 과거로 설정합니다.
   };
 
   // 🛑 쿠키 삭제 시에도 설정된 domain 옵션이 필요하므로, 설정한 적이 있다면 동일하게 제거합니다.
